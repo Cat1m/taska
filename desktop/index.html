@@ -9,7 +9,21 @@
   </head>
   <body>
     <main>
-      <h1>Taska</h1>
+      <div class="page-header">
+        <h1>Taska</h1>
+        <div class="settings-wrap">
+          <button id="settings-btn" class="ghost settings-btn" aria-label="Settings" title="Settings">⚙</button>
+          <div id="settings-panel" class="settings-panel" hidden>
+            <div class="settings-row">
+              <span class="settings-label">Theme</span>
+              <button id="theme-toggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Toggle light/dark theme">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-label">Dark</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="col-left">
 

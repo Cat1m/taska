@@ -64,6 +64,40 @@ interface TodayDaily {
   created_at: string;
 }
 
+// ---- Theme ----
+const ThemeManager = (() => {
+  const KEY = "taska-theme";
+  const html = document.documentElement;
+
+  function apply(theme: "dark" | "light") {
+    html.classList.add("theme-transitioning");
+    html.dataset.theme = theme;
+    const btn = document.getElementById("theme-toggle") as HTMLButtonElement | null;
+    if (btn) {
+      const isLight = theme === "light";
+      btn.setAttribute("aria-checked", isLight ? "true" : "false");
+      const lbl = btn.querySelector<HTMLElement>(".toggle-label");
+      if (lbl) lbl.textContent = isLight ? "Light" : "Dark";
+    }
+    setTimeout(() => html.classList.remove("theme-transitioning"), 250);
+  }
+
+  function init() {
+    const saved = localStorage.getItem(KEY) as "dark" | "light" | null;
+    const sys = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    apply(saved ?? sys);
+  }
+
+  function toggle() {
+    const next = html.dataset.theme === "light" ? "dark" : "light";
+    localStorage.setItem(KEY, next);
+    apply(next);
+  }
+
+  return { init, toggle };
+})();
+ThemeManager.init();
+
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) =>
   document.querySelector<T>(sel)!;
 
@@ -948,6 +982,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Refresh history when daily-reset fires (already listening above) — augment:
   listen("daily-reset", () => { refreshHistory(); });
+
+  // Settings panel open/close
+  document.getElementById("settings-btn")!.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById("settings-panel")!;
+    panel.hidden = !panel.hidden;
+  });
+  document.getElementById("theme-toggle")!.addEventListener("click", (e) => {
+    e.stopPropagation();
+    ThemeManager.toggle();
+  });
+  document.addEventListener("click", () => {
+    const panel = document.getElementById("settings-panel");
+    if (panel) panel.hidden = true;
+  });
 
   refresh();
   refreshToday();
