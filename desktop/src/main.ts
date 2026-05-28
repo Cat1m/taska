@@ -922,7 +922,6 @@ window.addEventListener("DOMContentLoaded", () => {
       });
       const isDaily = ($("#f-category") as HTMLSelectElement).value === "daily";
       ($("#create-form") as HTMLFormElement).reset();
-      ($("#f-due") as HTMLInputElement).hidden = false;
       if (isDaily) await invoke("ensure_today_instances");
       await Promise.all([refresh(), refreshToday()]);
     } catch (err) { showError(String(err)); }
@@ -932,6 +931,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const checked = ($("#f-due-today") as HTMLInputElement).checked;
     ($("#f-due") as HTMLInputElement).hidden = checked;
   });
+
+  const updateDueDateVisibility = () => {
+    const isDaily = ($("#f-category") as HTMLSelectElement).value === "daily";
+    ($("#f-due-today") as HTMLElement).closest("label")!.hidden = isDaily;
+    ($("#f-due") as HTMLInputElement).hidden = isDaily || ($("#f-due-today") as HTMLInputElement).checked;
+  };
+  $("#f-category").addEventListener("change", updateDueDateVisibility);
 
   ["flt-context", "flt-category", "flt-template", "flt-status"].forEach(id => {
     $(`#${id}`).addEventListener("change", refresh);
