@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taska</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+  <body>
+    <main>
+      <h1>Taska</h1>
+
+      <div class="col-left">
+
+      <section>
+        <h2>Today <span id="today-date" class="today-date"></span></h2>
+        <div id="today-list"></div>
+      </section>
+
+      <section>
+        <h2>In progress
+          <label class="inline" style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:400">
+            <input type="checkbox" id="sp-include-done" /> show done
+          </label>
+        </h2>
+        <div id="spawned-list"></div>
+      </section>
+
+      <section>
+        <h2>New task</h2>
+        <form id="create-form" class="col">
+          <div class="row create-row">
+            <input id="f-title" placeholder="Title…" required />
+            <select id="f-context" title="context">
+              <option value="personal">personal</option>
+              <option value="work">work</option>
+            </select>
+            <select id="f-category" title="category">
+              <option value="normal">normal</option>
+              <option value="daily">daily</option>
+            </select>
+            <label class="inline"><input type="checkbox" id="f-template" /> template</label>
+            <input id="f-due" type="date" />
+            <button type="submit" class="primary">Create</button>
+          </div>
+          <textarea id="f-note" placeholder="Note (Markdown, optional)"></textarea>
+        </form>
+      </section>
+
+      </div><!-- col-left -->
+
+      <div class="col-right">
+
+      <section>
+        <h2>Tasks</h2>
+        <div class="filters">
+          <label>context
+            <select id="flt-context">
+              <option value="">all</option>
+              <option value="personal">personal</option>
+              <option value="work">work</option>
+            </select>
+          </label>
+          <label>category
+            <select id="flt-category">
+              <option value="">all</option>
+              <option value="normal">normal</option>
+              <option value="daily">daily</option>
+            </select>
+          </label>
+          <label>template
+            <select id="flt-template">
+              <option value="">all</option>
+              <option value="true">templates</option>
+              <option value="false">non-templates</option>
+            </select>
+          </label>
+          <label>status
+            <select id="flt-status">
+              <option value="active">active</option>
+              <option value="archived">archived</option>
+            </select>
+          </label>
+          <div class="spacer"></div>
+          <button id="flt-refresh" class="ghost">↻ Refresh</button>
+        </div>
+        <div id="err" class="error" hidden></div>
+        <div id="list"></div>
+      </section>
+
+      <section>
+        <h2>
+          <button id="hist-toggle" class="ghost hist-toggle">▸ History</button>
+          <span id="hist-controls" hidden>
+            <span class="tabs" role="tablist">
+              <button class="tab active" data-view="heatmap" type="button">Heatmap</button>
+              <button class="tab" data-view="calendar" type="button">Calendar</button>
+            </span>
+            <select id="hist-days" class="hist-days">
+              <option value="14">14d</option>
+              <option value="30" selected>30d</option>
+              <option value="60">60d</option>
+              <option value="90">90d</option>
+            </select>
+          </span>
+        </h2>
+        <div id="hist-body" hidden>
+          <div id="hist-view-heatmap" class="hist-view">
+            <div id="hist-grid"></div>
+            <div id="hist-empty" class="empty" hidden>No daily history yet.</div>
+          </div>
+          <div id="hist-view-calendar" class="hist-view" hidden>
+            <div class="cal-nav">
+              <button id="cal-prev" class="ghost" type="button">◀</button>
+              <span id="cal-month-label" class="cal-month-label"></span>
+              <button id="cal-next" class="ghost" type="button">▶</button>
+              <button id="cal-today" class="ghost cal-today-btn" type="button">Today</button>
+            </div>
+            <div class="cal-weekdays">
+              <span>Mon</span><span>Tue</span><span>Wed</span>
+              <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div id="cal-grid" class="cal-grid"></div>
+            <div id="cal-legend" class="cal-legend">
+              <span>completion</span>
+              <span class="cal-swatch s0"></span>
+              <span class="cal-swatch s1"></span>
+              <span class="cal-swatch s2"></span>
+              <span class="cal-swatch s3"></span>
+              <span class="cal-swatch s4"></span>
+              <span>full</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      </div><!-- col-right -->
+    </main>
+
+    <div id="hist-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3 id="hm-title">History</h3>
+        <div id="hm-body" class="hm-body"></div>
+        <div class="modal-actions">
+          <button type="button" id="hm-cancel">✕ Close</button>
+          <button type="button" id="hm-save" class="primary">✓ Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="spawn-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3>Spawn task from template</h3>
+        <p id="spawn-from" class="modal-from"></p>
+        <form id="spawn-form" class="modal-grid">
+          <label>Title
+            <input id="sp-title" required />
+          </label>
+          <label>Context
+            <select id="sp-context">
+              <option value="personal">personal</option>
+              <option value="work">work</option>
+            </select>
+          </label>
+          <label>Due date
+            <input id="sp-due" type="date" />
+          </label>
+          <label>Note for this run
+            <textarea id="sp-note" placeholder="(optional)"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="button" id="sp-cancel">Cancel</button>
+            <button type="submit" class="primary">Spawn</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="edit-modal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <h3>Edit task</h3>
+        <form id="edit-form" class="modal-grid">
+          <label>Title
+            <input id="e-title" required />
+          </label>
+          <label>Context
+            <select id="e-context">
+              <option value="personal">personal</option>
+              <option value="work">work</option>
+            </select>
+          </label>
+          <label>Due date
+            <input id="e-due" type="date" />
+          </label>
+          <label>Note
+            <textarea id="e-note" placeholder="(blank to clear)"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="button" id="e-cancel">Cancel</button>
+            <button type="submit" class="primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
