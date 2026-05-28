@@ -904,7 +904,10 @@ window.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const title = ($("#f-title") as HTMLInputElement).value.trim();
     if (!title) return;
-    const due = ($("#f-due") as HTMLInputElement).value;
+    const todayChecked = ($("#f-due-today") as HTMLInputElement).checked;
+    const due = todayChecked
+      ? new Date().toLocaleDateString("sv")
+      : ($("#f-due") as HTMLInputElement).value;
     const note = ($("#f-note") as HTMLTextAreaElement).value.trim();
     try {
       await invoke("create_task", {
@@ -917,9 +920,17 @@ window.addEventListener("DOMContentLoaded", () => {
           note: note || null,
         },
       });
+      const isDaily = ($("#f-category") as HTMLSelectElement).value === "daily";
       ($("#create-form") as HTMLFormElement).reset();
+      ($("#f-due") as HTMLInputElement).hidden = false;
+      if (isDaily) await invoke("ensure_today_instances");
       await Promise.all([refresh(), refreshToday()]);
     } catch (err) { showError(String(err)); }
+  });
+
+  $("#f-due-today").addEventListener("change", () => {
+    const checked = ($("#f-due-today") as HTMLInputElement).checked;
+    ($("#f-due") as HTMLInputElement).hidden = checked;
   });
 
   ["flt-context", "flt-category", "flt-template", "flt-status"].forEach(id => {
