@@ -2,220 +2,163 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Taska</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
     <script type="module" src="/src/main.ts" defer></script>
   </head>
   <body>
-    <main>
-      <div class="page-header">
-        <h1>Taska</h1>
-        <div class="settings-wrap">
-          <button id="settings-btn" class="ghost settings-btn" aria-label="Settings" title="Settings">⚙</button>
-          <div id="settings-panel" class="settings-panel" hidden>
-            <div class="settings-row">
-              <span class="settings-label">Theme</span>
-              <button id="theme-toggle" class="theme-toggle" role="switch" aria-checked="false" aria-label="Toggle light/dark theme">
-                <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                <span class="toggle-label">Dark</span>
+    <div class="titlebar" data-tauri-drag-region>
+      <span class="titlebar-brand" data-tauri-drag-region>Taska · tauri 2.x</span>
+      <div class="titlebar-right">
+        <button id="theme-btn" class="theme-btn">◐ light</button>
+        <span class="win-dots">
+          <span class="dot dot-min"   id="win-min"   title="Minimize"></span>
+          <span class="dot dot-max"   id="win-max"   title="Maximize"></span>
+          <span class="dot dot-close" id="win-close" title="Close"></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <nav class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">T</span>
+          <span class="brand-name">Taska</span>
+          <span class="brand-ver">0.1.0</span>
+        </div>
+        <ul class="nav-list">
+          <li class="nav-item active" data-goto="myday">
+            <span class="nav-icon">◉</span>
+            <span class="nav-label">My Day</span>
+            <span class="nav-pill" id="cnt-myday"></span>
+          </li>
+          <li class="nav-item" data-goto="tasks">
+            <span class="nav-icon">☰</span>
+            <span class="nav-label">Tasks</span>
+            <span class="nav-pill" id="cnt-tasks"></span>
+          </li>
+          <li class="nav-item" data-goto="spawned">
+            <span class="nav-icon">⑂</span>
+            <span class="nav-label">Spawned</span>
+            <span class="nav-pill" id="cnt-spawned"></span>
+          </li>
+          <li class="nav-item" data-goto="daily">
+            <span class="nav-icon">▦</span>
+            <span class="nav-label">Daily</span>
+            <span class="nav-pill" id="cnt-daily"></span>
+          </li>
+        </ul>
+        <div class="sidebar-foot">
+          <button id="sim-reset" class="dev-btn">↻ Simulate daily-reset</button>
+        </div>
+      </nav>
+
+      <main class="content">
+        <!-- My Day view -->
+        <section data-view="myday" class="view active">
+          <div class="view-head">
+            <div class="view-head-title">
+              <h1>My Day</h1>
+              <p id="today-date-sub" class="view-sub"></p>
+            </div>
+            <span id="autosave-hint" class="autosave-hint"></span>
+            <button id="new-task-btn" class="btn">+ New <kbd>N</kbd></button>
+          </div>
+          <div class="panel">
+            <div class="chip-bar">
+              <button class="chip active" data-f="all">all</button>
+              <button class="chip" data-f="personal">
+                <span class="ctx-dot personal"></span>personal
+              </button>
+              <button class="chip" data-f="work">
+                <span class="ctx-dot work"></span>work
               </button>
             </div>
+            <div id="myday-meta" class="myday-meta"></div>
+            <div id="myday-list" class="myday-list"></div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="col-left">
-
-      <section>
-        <h2>Today <span id="today-date" class="today-date"></span></h2>
-        <div id="today-list"></div>
-      </section>
-
-      <section>
-        <h2>In progress
-          <label class="inline" style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:400">
-            <input type="checkbox" id="sp-include-done" /> show done
-          </label>
-        </h2>
-        <div id="spawned-list"></div>
-      </section>
-
-      <section>
-        <h2>New task</h2>
-        <form id="create-form" class="col">
-          <div class="row create-row">
-            <input id="f-title" placeholder="Title…" required />
-            <select id="f-context" title="context">
-              <option value="personal">personal</option>
-              <option value="work">work</option>
-            </select>
-            <select id="f-category" title="category">
-              <option value="normal">normal</option>
-              <option value="daily">daily</option>
-            </select>
-            <label class="inline"><input type="checkbox" id="f-template" /> template</label>
-            <label class="inline"><input type="checkbox" id="f-due-today" checked /> today</label>
-            <input id="f-due" type="date" hidden />
-            <button type="submit" class="primary">Create</button>
+        <!-- Tasks view (stub) -->
+        <section data-view="tasks" class="view">
+          <div class="view-head">
+            <div class="view-head-title"><h1>Tasks</h1></div>
           </div>
-          <textarea id="f-note" placeholder="Note (Markdown, optional)"></textarea>
-        </form>
-      </section>
-
-      </div><!-- col-left -->
-
-      <div class="col-right">
-
-      <section>
-        <h2>Tasks</h2>
-        <div class="filters">
-          <label>context
-            <select id="flt-context">
-              <option value="">all</option>
-              <option value="personal">personal</option>
-              <option value="work">work</option>
-            </select>
-          </label>
-          <label>category
-            <select id="flt-category">
-              <option value="">all</option>
-              <option value="normal">normal</option>
-              <option value="daily">daily</option>
-            </select>
-          </label>
-          <label>template
-            <select id="flt-template">
-              <option value="">all</option>
-              <option value="true">templates</option>
-              <option value="false">non-templates</option>
-            </select>
-          </label>
-          <label>status
-            <select id="flt-status">
-              <option value="active">active</option>
-              <option value="archived">archived</option>
-            </select>
-          </label>
-          <div class="spacer"></div>
-          <button id="flt-refresh" class="ghost">↻ Refresh</button>
-        </div>
-        <div id="err" class="error" hidden></div>
-        <div id="list"></div>
-      </section>
-
-      <section>
-        <h2>
-          <button id="hist-toggle" class="ghost hist-toggle">▸ History</button>
-          <span id="hist-controls" hidden>
-            <span class="tabs" role="tablist">
-              <button class="tab active" data-view="heatmap" type="button">Heatmap</button>
-              <button class="tab" data-view="calendar" type="button">Calendar</button>
-            </span>
-            <select id="hist-days" class="hist-days">
-              <option value="14">14d</option>
-              <option value="30" selected>30d</option>
-              <option value="60">60d</option>
-              <option value="90">90d</option>
-            </select>
-          </span>
-        </h2>
-        <div id="hist-body" hidden>
-          <div id="hist-view-heatmap" class="hist-view">
-            <div id="hist-grid"></div>
-            <div id="hist-empty" class="empty" hidden>No daily history yet.</div>
+          <div class="panel stub-panel">
+            <span class="stub-label">Tasks view — coming soon</span>
           </div>
-          <div id="hist-view-calendar" class="hist-view" hidden>
-            <div class="cal-nav">
-              <button id="cal-prev" class="ghost" type="button">◀</button>
-              <span id="cal-month-label" class="cal-month-label"></span>
-              <button id="cal-next" class="ghost" type="button">▶</button>
-              <button id="cal-today" class="ghost cal-today-btn" type="button">Today</button>
-            </div>
-            <div class="cal-weekdays">
-              <span>Mon</span><span>Tue</span><span>Wed</span>
-              <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-            </div>
-            <div id="cal-grid" class="cal-grid"></div>
-            <div id="cal-legend" class="cal-legend">
-              <span>completion</span>
-              <span class="cal-swatch s0"></span>
-              <span class="cal-swatch s1"></span>
-              <span class="cal-swatch s2"></span>
-              <span class="cal-swatch s3"></span>
-              <span class="cal-swatch s4"></span>
-              <span>full</span>
-            </div>
+        </section>
+
+        <!-- Spawned view (stub) -->
+        <section data-view="spawned" class="view">
+          <div class="view-head">
+            <div class="view-head-title"><h1>Spawned</h1></div>
           </div>
-        </div>
-      </section>
+          <div class="panel stub-panel">
+            <span class="stub-label">Spawned view — coming soon</span>
+          </div>
+        </section>
 
-      </div><!-- col-right -->
-    </main>
-
-    <div id="hist-modal" class="modal-backdrop" hidden>
-      <div class="modal">
-        <h3 id="hm-title">History</h3>
-        <div id="hm-body" class="hm-body"></div>
-        <div class="modal-actions">
-          <button type="button" id="hm-cancel">✕ Close</button>
-          <button type="button" id="hm-save" class="primary">✓ Save changes</button>
-        </div>
-      </div>
+        <!-- Daily view (stub) -->
+        <section data-view="daily" class="view">
+          <div class="view-head">
+            <div class="view-head-title"><h1>Daily</h1></div>
+          </div>
+          <div class="panel stub-panel">
+            <span class="stub-label">Daily analytics — coming soon</span>
+          </div>
+        </section>
+      </main>
     </div>
 
-    <div id="spawn-modal" class="modal-backdrop" hidden>
-      <div class="modal">
-        <h3>Spawn task from template</h3>
-        <p id="spawn-from" class="modal-from"></p>
-        <form id="spawn-form" class="modal-grid">
-          <label>Title
-            <input id="sp-title" required />
-          </label>
-          <label>Context
-            <select id="sp-context">
-              <option value="personal">personal</option>
-              <option value="work">work</option>
-            </select>
-          </label>
-          <label>Due date
-            <input id="sp-due" type="date" />
-          </label>
-          <label>Note for this run
-            <textarea id="sp-note" placeholder="(optional)"></textarea>
-          </label>
-          <div class="modal-actions">
-            <button type="button" id="sp-cancel">Cancel</button>
-            <button type="submit" class="primary">Spawn</button>
-          </div>
-        </form>
-      </div>
+    <!-- Daily reset banner -->
+    <div id="reset-banner" class="reset-banner hidden">
+      <span>↻ Daily reset · new instances created</span>
+      <button id="dismiss-reset" class="banner-dismiss">×</button>
     </div>
 
-    <div id="edit-modal" class="modal-backdrop" hidden>
-      <div class="modal">
-        <h3>Edit task</h3>
-        <form id="edit-form" class="modal-grid">
-          <label>Title
-            <input id="e-title" required />
-          </label>
-          <label>Context
-            <select id="e-context">
-              <option value="personal">personal</option>
-              <option value="work">work</option>
-            </select>
-          </label>
-          <label>Due date
-            <input id="e-due" type="date" />
-          </label>
-          <label>Note
-            <textarea id="e-note" placeholder="(blank to clear)"></textarea>
-          </label>
-          <div class="modal-actions">
-            <button type="button" id="e-cancel">Cancel</button>
-            <button type="submit" class="primary">Save</button>
+    <!-- Unified modal -->
+    <div id="modal-scrim" class="modal-scrim hidden">
+      <div class="modal-card">
+        <div class="modal-head">
+          <span id="modal-title" class="modal-title-text">Create task</span>
+          <span id="modal-mode-tag" class="mode-tag">CREATE</span>
+          <button id="modal-close" class="modal-close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <input id="m-title" type="text" class="modal-input" placeholder="Task title" autocomplete="off" />
+          <div class="modal-row">
+            <div class="choice-group" data-group="context">
+              <button class="choice active" data-v="personal">personal</button>
+              <button class="choice" data-v="work">work</button>
+            </div>
+            <div class="choice-group" data-group="category">
+              <button class="choice active" data-v="daily">daily</button>
+              <button class="choice" data-v="normal">normal</button>
+            </div>
           </div>
-        </form>
+          <div class="modal-row">
+            <input id="m-due" type="date" class="modal-input modal-due" />
+            <div class="choice-group" data-group="status" id="status-group">
+              <button class="choice active" data-v="active">active</button>
+              <button class="choice" data-v="archived">archived</button>
+            </div>
+          </div>
+          <textarea id="m-note" class="modal-textarea" placeholder="Note…" rows="3"></textarea>
+          <label class="switch-row">
+            <span class="switch-label">Is template</span>
+            <input id="m-template" type="checkbox" class="switch-input" />
+            <span class="switch-hint">spawns instances into Spawned view</span>
+          </label>
+        </div>
+        <div class="modal-foot">
+          <button id="modal-cancel" class="btn ghost">Cancel <kbd>Esc</kbd></button>
+          <button id="modal-save"   class="btn primary">Save</button>
+        </div>
       </div>
     </div>
   </body>

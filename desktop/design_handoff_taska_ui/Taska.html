@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Taska — desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="taska.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== custom titlebar (Tauri-style chrome) ===== -->
+  <div class="titlebar" data-screen-label="titlebar">
+    <div class="tb-title"><b>Taska</b><span>·</span><span>tauri 2.x</span></div>
+    <div class="tb-controls">
+      <button class="tb-theme" id="theme-toggle"><span id="theme-ico">◑</span> <span id="theme-label">light</span></button>
+      <button class="tb-dot min" title="minimize"></button>
+      <button class="tb-dot max" title="maximize"></button>
+      <button class="tb-dot close" title="close"></button>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ===== sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="mark">T</div>
+        <div class="name">Taska</div>
+        <div class="ver">v0.4.1</div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-label">Views</div>
+        <button class="nav-item active" data-view="myday">
+          <span class="nav-ico">◉</span> My Day
+          <span class="nav-count" id="count-myday">0</span>
+        </button>
+        <button class="nav-item" data-view="tasks">
+          <span class="nav-ico">☰</span> Tasks
+          <span class="nav-count" id="count-tasks">0</span>
+        </button>
+        <button class="nav-item" data-view="spawned">
+          <span class="nav-ico">⑂</span> Spawned
+          <span class="nav-count" id="count-spawned">0</span>
+        </button>
+        <button class="nav-item" data-view="daily">
+          <span class="nav-ico">▦</span> Daily
+          <span class="nav-count" id="count-daily">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+
+      <!-- dev affordance: simulate midnight reset -->
+      <div class="nav" style="padding-bottom:12px;">
+        <button class="nav-item" id="btn-reset" style="color:var(--fg-2);font-size:12px;">
+          <span class="nav-ico">↻</span> Simulate daily-reset
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== content ===== -->
+    <main class="content">
+
+      <!-- midnight reset banner -->
+      <div class="reset-banner" id="reset-banner">
+        <span class="pulse"></span>
+        <span><b>daily-reset</b> fired — daily instances rolled over to a new day. Streaks preserved.</span>
+        <button class="dismiss" id="reset-dismiss">×</button>
+      </div>
+
+      <!-- ============ MY DAY ============ -->
+      <section class="view active" data-view="myday" data-screen-label="myday">
+        <div class="view-head">
+          <h1>My Day</h1>
+          <span class="sub" id="myday-date"></span>
+          <div class="spacer"></div>
+          <span class="debounce-hint">notes autosave · 500ms debounce</span>
+          <button class="btn primary" id="btn-new"><span class="k">+</span> New <span class="kbd" style="border-color:rgba(255,255,255,.2);color:#cfe3d6;">N</span></button>
+        </div>
+        <div class="view-body">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Today</h2>
+              <div class="chips" id="myday-chips">
+                <button class="chip active" data-f="all">all</button>
+                <button class="chip" data-f="personal"><span class="d" style="background:var(--teal)"></span>personal</button>
+                <button class="chip" data-f="work"><span class="d" style="background:var(--amber)"></span>work</button>
+              </div>
+              <span class="meta" id="myday-meta"></span>
+            </div>
+            <div id="myday-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TASKS ============ -->
+      <section class="view" data-view="tasks" data-screen-label="tasks">
+        <div class="view-head">
+          <h1>Tasks</h1>
+          <span class="sub" id="tasks-sub"></span>
+          <div class="spacer"></div>
+          <div class="search">
+            <span class="ico">⌕</span>
+            <input type="text" id="task-search" placeholder="filter title / note…" />
+          </div>
+          <div class="seg" id="task-filter">
+            <button class="active" data-filter="active">active</button>
+            <button data-filter="archived">archived</button>
+          </div>
+          <button class="btn primary" id="btn-new-2"><span class="k">+</span> New</button>
+        </div>
+        <div class="view-body">
+          <div class="col-head">
+            <span></span><span>Task</span><span>Tags</span><span>Due</span>
+          </div>
+          <div id="tasks-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ SPAWNED ============ -->
+      <section class="view" data-view="spawned" data-screen-label="spawned">
+        <div class="view-head">
+          <h1>Spawned</h1>
+          <span class="sub">Instances spawned from template tasks</span>
+          <div class="spacer"></div>
+          <button class="btn ghost"><span class="k">⑂</span> Spawn from template…</button>
+        </div>
+        <div class="view-body">
+          <div id="spawned-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ DAILY ============ -->
+      <section class="view" data-view="daily" data-screen-label="daily">
+        <div class="view-head">
+          <h1>Daily</h1>
+          <span class="sub">Completion heatmap + today's instances</span>
+          <div class="spacer"></div>
+          <span class="debounce-hint">notes autosave · 500ms debounce</span>
+        </div>
+        <div class="view-body">
+          <div class="daily-grid">
+
+            <!-- heatmap panel -->
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Completion heatmap</h2>
+                <span class="meta">last 18 weeks</span>
+              </div>
+              <div class="panel-body">
+                <div class="stats" style="margin-bottom:18px;">
+                  <div class="stat"><div class="v" id="stat-today">0/0</div><div class="l">today done</div></div>
+                  <div class="stat"><div class="v" id="stat-pct">0%</div><div class="l">today rate</div></div>
+                  <div class="stat"><div class="v" id="stat-streak">0d</div><div class="l">best streak</div></div>
+                </div>
+                <div class="heat-wrap">
+                  <div class="heat-day-labels">
+                    <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+                  </div>
+                  <div id="heatmap"></div>
+                </div>
+                <div class="heat-legend">
+                  less
+                  <span class="heat-cell" data-lvl="0"></span>
+                  <span class="heat-cell" data-lvl="1"></span>
+                  <span class="heat-cell" data-lvl="2"></span>
+                  <span class="heat-cell" data-lvl="3"></span>
+                  <span class="heat-cell" data-lvl="4"></span>
+                  more
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MODAL (pre-rendered) ============ -->
+      <div class="modal-scrim" id="modal-scrim">
+        <div class="modal">
+          <div class="modal-head">
+            <h3 id="modal-title">Create task</h3>
+            <span class="mode-tag" id="modal-mode">create</span>
+            <button class="x" id="modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="field">
+              <label>Title</label>
+              <input type="text" id="f-title" placeholder="What needs doing?" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Context</label>
+                <div class="choice" data-group="ctx">
+                  <button data-v="personal" class="active"><span class="d"></span>personal</button>
+                  <button data-v="work"><span class="d"></span>work</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Category</label>
+                <div class="choice" data-group="cat">
+                  <button data-v="daily"><span class="d"></span>daily</button>
+                  <button data-v="normal" class="active"><span class="d"></span>normal</button>
+                </div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Due date</label>
+                <input type="date" id="f-due" />
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <div class="choice" data-group="status">
+                  <button data-v="active" class="active">active</button>
+                  <button data-v="archived">archived</button>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Note</label>
+              <textarea id="f-note" placeholder="Optional details, links, context…"></textarea>
+            </div>
+            <div class="switch-row">
+              <div class="switch" id="f-template"></div>
+              <span class="lbl">Is template</span>
+              <span class="hint">— spawns instances into the Spawned view</span>
+            </div>
+            <div id="spawn-fields" style="display:none;">
+              <div class="field">
+                <label>Spawn for date</label>
+                <input type="date" id="f-spawn-date" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn ghost" id="f-cancel">Cancel <span class="kbd">esc</span></button>
+            <button class="btn primary" id="f-save">Create</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="taska.js"></script>
+</body>
+</html>
