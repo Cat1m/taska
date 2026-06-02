@@ -58,6 +58,8 @@ pub fn run() {
             features::daily::toggle_daily_done,
             features::daily::toggle_normal_task_today,
             features::daily::set_daily_note,
+            features::settings::get_setting,
+            features::settings::set_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

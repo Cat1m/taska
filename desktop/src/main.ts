@@ -177,26 +177,6 @@ function makeCollapsible(bodyEl: HTMLElement, toggleBtn: HTMLButtonElement) {
   });
 }
 
-// ─── Theme ────────────────────────────────────────────────
-
-const THEME_KEY = "taska-theme";
-
-function applyTheme(t: "dark" | "light") {
-  const html = document.documentElement;
-  html.classList.add("theme-transitioning");
-  html.dataset.theme = t === "light" ? "light" : "";
-  const btn = document.getElementById("theme-btn");
-  if (btn) btn.textContent = t === "light" ? "◑ dark" : "◐ light";
-  setTimeout(() => html.classList.remove("theme-transitioning"), 250);
-}
-
-function toggleTheme() {
-  const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  const next: "dark" | "light" = current === "light" ? "dark" : "light";
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
-}
-
 // ─── View navigation ──────────────────────────────────────
 
 function setView(v: ViewName) {
@@ -1057,6 +1037,164 @@ async function saveModal() {
   }
 }
 
+// ─── Background system ────────────────────────────────────
+
+const BG_PRESETS = [
+  { label: "Midnight", value: "linear-gradient(135deg, #0c0d11 0%, #111820 50%, #141c2a 100%)" },
+  { label: "Slate",    value: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)" },
+  { label: "Forest",   value: "linear-gradient(135deg, #0a1612 0%, #0f2318 50%, #1a3a26 100%)" },
+  { label: "Dusk",     value: "linear-gradient(135deg, #1a0e2e 0%, #2d1554 50%, #1e0a3c 100%)" },
+  { label: "Ember",    value: "linear-gradient(135deg, #1a0c0a 0%, #2d1408 50%, #3d1f10 100%)" },
+  { label: "Ocean",    value: "linear-gradient(135deg, #041428 0%, #0a2040 50%, #0d2d5a 100%)" },
+  { label: "Ash",      value: "linear-gradient(135deg, #131314 0%, #1c1c1e 50%, #242426 100%)" },
+  { label: "Warm",     value: "linear-gradient(135deg, #1a1510 0%, #251e15 50%, #2e261a 100%)" },
+];
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const m = hex.replace("#", "").match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (!m) return null;
+  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+}
+
+function relativeLuminance(r: number, g: number, b: number): number {
+  const lin = (v: number) => {
+    const s = v / 255;
+    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function extractFirstHex(css: string): string | null {
+  const m = css.match(/#([0-9a-f]{6})/i);
+  return m ? m[0] : null;
+}
+
+function isBgDark(bgValue: string): boolean {
+  if (bgValue.startsWith("data:image") || bgValue.startsWith("url(")) return true;
+  const hex = extractFirstHex(bgValue);
+  if (!hex) return true;
+  const rgb = hexToRgb(hex);
+  if (!rgb) return true;
+  return relativeLuminance(...rgb) < 0.35;
+}
+
+function applyAdaptiveColors(dark: boolean) {
+  const r = document.documentElement;
+  if (dark) {
+    r.style.setProperty("--accent",      "rgba(255, 255, 255, 0.88)");
+    r.style.setProperty("--accent-dim",  "rgba(255, 255, 255, 0.14)");
+    r.style.setProperty("--accent-glow", "0 0 14px 2px rgba(255, 255, 255, 0.11)");
+    r.style.setProperty("--fg-0",        "rgba(226, 229, 234, 0.95)");
+    r.style.setProperty("--fg-1",        "rgba(170, 176, 186, 0.85)");
+    r.style.setProperty("--fg-2",        "rgba(111, 118, 129, 0.75)");
+    r.style.setProperty("--fg-3",        "rgba(74,  80,  90,  0.55)");
+    r.style.setProperty("--glass-heavy", "rgba(10,  12,  15,  0.90)");
+    r.style.setProperty("--glass-mid",   "rgba(16,  19,  24,  0.75)");
+    r.style.setProperty("--glass-light", "rgba(22,  26,  32,  0.55)");
+    r.style.setProperty("--glass-hover", "rgba(30,  35,  42,  0.60)");
+    r.style.setProperty("--border",      "rgba(255, 255, 255, 0.07)");
+    r.style.setProperty("--border-2",    "rgba(255, 255, 255, 0.13)");
+  } else {
+    r.style.setProperty("--accent",      "rgba(15, 23, 42, 0.88)");
+    r.style.setProperty("--accent-dim",  "rgba(15, 23, 42, 0.12)");
+    r.style.setProperty("--accent-glow", "0 0 14px 2px rgba(0, 0, 0, 0.10)");
+    r.style.setProperty("--fg-0",        "rgba(15,  23,  42,  0.95)");
+    r.style.setProperty("--fg-1",        "rgba(30,  41,  59,  0.85)");
+    r.style.setProperty("--fg-2",        "rgba(71,  85,  105, 0.75)");
+    r.style.setProperty("--fg-3",        "rgba(100, 116, 139, 0.55)");
+    r.style.setProperty("--glass-heavy", "rgba(248, 250, 252, 0.88)");
+    r.style.setProperty("--glass-mid",   "rgba(241, 245, 249, 0.75)");
+    r.style.setProperty("--glass-light", "rgba(226, 232, 240, 0.55)");
+    r.style.setProperty("--glass-hover", "rgba(203, 213, 225, 0.62)");
+    r.style.setProperty("--border",      "rgba(0,   0,   0,   0.07)");
+    r.style.setProperty("--border-2",    "rgba(0,   0,   0,   0.13)");
+  }
+}
+
+function applyBackground(value: string, save = true) {
+  document.body.style.setProperty("--app-bg", value.startsWith("url(") ? value : value);
+  document.body.style.backgroundImage = value.startsWith("url(") ? value : "none";
+  document.body.style.background = value.startsWith("url(") ? "" : value;
+  applyAdaptiveColors(isBgDark(value));
+  updateBgSwatchActive(value);
+  if (save) {
+    invoke("set_setting", { key: "background", value }).catch(() => {});
+  }
+}
+
+function updateBgSwatchActive(value: string) {
+  document.querySelectorAll<HTMLElement>(".bg-swatch").forEach(el => {
+    el.classList.toggle("active", el.dataset.bg === value);
+  });
+}
+
+function setupBgPicker() {
+  const btn   = document.getElementById("bg-btn")!;
+  const panel = document.getElementById("bg-panel")!;
+  const presetContainer = document.getElementById("bg-presets")!;
+  const colorInput      = document.getElementById("bg-color-input") as HTMLInputElement;
+  const uploadBtn       = document.getElementById("bg-upload-btn")!;
+  const fileInput       = document.getElementById("bg-file-input") as HTMLInputElement;
+
+  // Build preset swatches
+  BG_PRESETS.forEach(p => {
+    const swatch = document.createElement("button");
+    swatch.className = "bg-swatch";
+    swatch.dataset.bg = p.value;
+    swatch.style.background = p.value;
+    swatch.title = p.label;
+    const lbl = document.createElement("span");
+    lbl.className = "bg-swatch-label";
+    lbl.textContent = p.label;
+    swatch.appendChild(lbl);
+    swatch.addEventListener("click", () => applyBackground(p.value));
+    presetContainer.appendChild(swatch);
+  });
+
+  // Toggle panel
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const open = panel.classList.toggle("hidden");
+    btn.classList.toggle("open", !open);
+  });
+
+  // Close on outside click
+  document.addEventListener("click", e => {
+    if (!panel.classList.contains("hidden") && !panel.contains(e.target as Node) && e.target !== btn) {
+      panel.classList.add("hidden");
+      btn.classList.remove("open");
+    }
+  });
+
+  // Color picker → solid background
+  colorInput.addEventListener("input", () => {
+    applyBackground(colorInput.value);
+  });
+
+  // Image upload
+  uploadBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const cssUrl = `url('${dataUrl}')`;
+      applyBackground(cssUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function initBackground() {
+  try {
+    const saved = await invoke<string | null>("get_setting", { key: "background" });
+    applyBackground(saved ?? BG_PRESETS[0].value, false);
+  } catch {
+    applyBackground(BG_PRESETS[0].value, false);
+  }
+}
+
 // ─── Reset banner ─────────────────────────────────────────
 
 function showResetBanner() {
@@ -1068,10 +1206,9 @@ function showResetBanner() {
 // ─── Init ─────────────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // Theme
-  const saved = localStorage.getItem(THEME_KEY) as "dark" | "light" | null;
-  const sys   = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-  applyTheme(saved ?? sys);
+  // Background
+  setupBgPicker();
+  await initBackground();
 
   // Today date subtitle + yesterday nav
   updateMyDayDateNav();
@@ -1091,9 +1228,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("win-max")!.addEventListener("click",   () => appWindow.toggleMaximize());
     document.getElementById("win-close")!.addEventListener("click", () => appWindow.close());
   } catch { /* native decorations active */ }
-
-  // Theme toggle
-  document.getElementById("theme-btn")!.addEventListener("click", toggleTheme);
 
   // Sidebar navigation
   document.querySelectorAll<HTMLElement>(".nav-item").forEach(item => {
