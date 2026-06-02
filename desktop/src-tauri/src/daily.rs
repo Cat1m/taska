@@ -20,7 +20,7 @@ pub struct HistoryEntry {
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 pub struct TodayDaily {
-    pub id: String,           // instance id
+    pub id: String,           // instance id (daily) or task id (normal)
     pub task_id: String,
     pub title: String,
     pub context: String,
@@ -30,6 +30,7 @@ pub struct TodayDaily {
     pub is_done: bool,
     pub note: Option<String>,
     pub created_at: String,
+    pub kind: String,         // "daily" | "normal"
 }
 
 pub fn local_today() -> String {
@@ -79,16 +80,61 @@ pub async fn list_today_daily(state: State<'_, AppState>) -> AppResult<Vec<Today
     let rows = sqlx::query_as::<_, TodayDaily>(
         "SELECT di.id, di.task_id, t.title, t.context, t.is_template,
                 t.note AS template_note,
-                di.date, di.is_done, di.note, di.created_at
+                di.date, di.is_done, di.note, di.created_at,
+                'daily' AS kind
          FROM daily_instances di
          JOIN tasks t ON t.id = di.task_id
          WHERE di.date = ?
-         ORDER BY t.context, t.title",
+
+         UNION ALL
+
+         SELECT t.id, t.id AS task_id, t.title, t.context, t.is_template,
+                t.note AS template_note,
+                ? AS date,
+                COALESCE(di.is_done, 0) AS is_done,
+                di.note AS note,
+                t.created_at,
+                'normal' AS kind
+         FROM tasks t
+         LEFT JOIN daily_instances di ON di.task_id = t.id AND di.date = ?
+         WHERE t.category = 'normal'
+           AND t.status = 'active'
+           AND t.due_date = ?
+
+         ORDER BY context, title",
     )
+    .bind(&today)
+    .bind(&today)
+    .bind(&today)
     .bind(&today)
     .fetch_all(&state.pool)
     .await?;
     Ok(rows)
+}
+
+#[tauri::command]
+pub async fn toggle_normal_task_today(
+    state: State<'_, AppState>,
+    task_id: String,
+    is_done: bool,
+) -> AppResult<()> {
+    let today = local_today();
+    let now = now_iso();
+    let id = Uuid::new_v4().to_string();
+    // Insert row if not exists, then update is_done
+    sqlx::query(
+        "INSERT INTO daily_instances (id, task_id, date, is_done, note, created_at)
+         VALUES (?, ?, ?, ?, NULL, ?)
+         ON CONFLICT(task_id, date) DO UPDATE SET is_done = excluded.is_done",
+    )
+    .bind(&id)
+    .bind(&task_id)
+    .bind(&today)
+    .bind(is_done)
+    .bind(&now)
+    .execute(&state.pool)
+    .await?;
+    Ok(())
 }
 
 #[tauri::command]

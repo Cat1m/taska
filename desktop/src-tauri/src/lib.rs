@@ -58,6 +58,7 @@ pub fn run() {
             daily::list_daily_history,
             daily::list_daily_history_between,
             daily::toggle_daily_done,
+            daily::toggle_normal_task_today,
             daily::set_daily_note,
             spawned::spawn_task,
             spawned::list_spawned,

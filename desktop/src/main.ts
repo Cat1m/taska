@@ -47,6 +47,7 @@ interface TodayDaily {
   is_done: boolean;
   note: string | null;
   created_at: string;
+  kind: "daily" | "normal";
 }
 
 interface HistoryEntry {
@@ -276,7 +277,11 @@ async function toggleDone(id: string, done: boolean) {
   refreshMyDayPills();
 
   try {
-    await invoke("toggle_daily_done", { id, isDone: done });
+    if (inst?.kind === "normal") {
+      await invoke("toggle_normal_task_today", { taskId: inst.task_id, isDone: done });
+    } else {
+      await invoke("toggle_daily_done", { id, isDone: done });
+    }
   } catch (e) {
     if (inst) inst.is_done = !done;
     if (row) {
@@ -287,7 +292,7 @@ async function toggleDone(id: string, done: boolean) {
     }
     updateMyDayMeta();
     refreshMyDayPills();
-    console.error("toggle_daily_done:", e);
+    console.error("toggleDone:", e);
   }
 }
 
