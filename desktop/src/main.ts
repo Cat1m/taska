@@ -287,7 +287,7 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
       : `Remove "${inst.title}" from today? (Task still exists in your task list.)`;
     if (!window.confirm(msg)) return;
     try {
-      await invoke("remove_from_today", { id: inst.id });
+      await invoke("remove_from_today", { taskId: inst.task_id, date: currentMyDayDate, kind: inst.kind });
       document.getElementById(`row-${inst.id}`)?.remove();
       await updateNavCounts();
     } catch (e) { console.error("remove_from_today:", e); }

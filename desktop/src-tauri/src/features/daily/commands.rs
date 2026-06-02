@@ -53,8 +53,13 @@ pub async fn toggle_normal_task_today(
 }
 
 #[tauri::command]
-pub async fn remove_from_today(state: State<'_, AppState>, id: String) -> AppResult<()> {
-    repo::remove_instance(&state.pool, &id).await
+pub async fn remove_from_today(
+    state: State<'_, AppState>,
+    task_id: String,
+    date: String,
+    kind: String,
+) -> AppResult<()> {
+    repo::remove_from_today(&state.pool, &task_id, &date, &kind).await
 }
 
 #[tauri::command]

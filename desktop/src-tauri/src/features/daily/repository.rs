@@ -97,14 +97,23 @@ pub(super) async fn toggle_normal_today(
     Ok(())
 }
 
-pub(super) async fn remove_instance(pool: &SqlitePool, id: &str) -> AppResult<()> {
-    let res = sqlx::query("DELETE FROM daily_instances WHERE id = ?")
-        .bind(id)
+pub(super) async fn remove_from_today(
+    pool: &SqlitePool,
+    task_id: &str,
+    date: &str,
+    kind: &str,
+) -> AppResult<()> {
+    if kind == "normal" {
+        sqlx::query("UPDATE tasks SET due_date = NULL WHERE id = ?")
+            .bind(task_id)
+            .execute(pool)
+            .await?;
+    }
+    sqlx::query("DELETE FROM daily_instances WHERE task_id = ? AND date = ?")
+        .bind(task_id)
+        .bind(date)
         .execute(pool)
         .await?;
-    if res.rows_affected() == 0 {
-        return Err(AppError::Other(format!("instance not found: {id}")));
-    }
     Ok(())
 }
 
