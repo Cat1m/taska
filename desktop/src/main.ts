@@ -692,6 +692,32 @@ function getChoice(group: string): string {
   return document.querySelector<HTMLButtonElement>(`[data-group="${group}"] .choice.active`)?.dataset.v ?? "";
 }
 
+function syncDueDateUI() {
+  const card = document.getElementById("modal-card") as HTMLElement;
+  const mode = card.dataset.mode;
+  if (mode !== "create" && mode !== "edit") return;
+  const wrapper = document.getElementById("due-wrapper")!;
+  const dueInput = document.getElementById("m-due") as HTMLInputElement;
+  const category = getChoice("category");
+  if (category === "daily") {
+    wrapper.style.display = "none";
+    dueInput.value = "";
+  } else {
+    wrapper.style.display = "flex";
+    if (mode === "create") {
+      const dueMode = getChoice("due-mode");
+      if (dueMode === "today") {
+        dueInput.value = isoDate(new Date());
+        dueInput.style.display = "none";
+      } else {
+        dueInput.style.display = "";
+      }
+    } else {
+      dueInput.style.display = "";
+    }
+  }
+}
+
 function openCreateModal(defaultCategory: Category = "normal") {
   const card = document.getElementById("modal-card")!;
   card.dataset.mode = "create";
@@ -700,11 +726,12 @@ function openCreateModal(defaultCategory: Category = "normal") {
   document.getElementById("modal-save")!.textContent = "Save";
   (document.getElementById("m-title")    as HTMLInputElement).value    = "";
   (document.getElementById("m-note")     as HTMLTextAreaElement).value = "";
-  (document.getElementById("m-due")      as HTMLInputElement).value    = "";
   (document.getElementById("m-template") as HTMLInputElement).checked  = false;
   setChoice("context",  "personal");
   setChoice("category", defaultCategory);
+  setChoice("due-mode", "today");
   setChoice("status",   "active");
+  syncDueDateUI();
   document.getElementById("modal-scrim")!.classList.remove("hidden");
   const noteEl = document.getElementById("m-note") as HTMLTextAreaElement;
   setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl); }, 50);
@@ -717,12 +744,14 @@ function openEditModal(t: Task) {
   document.getElementById("modal-title")!.textContent = "Edit task";
   document.getElementById("modal-mode-tag")!.textContent = "EDIT";
   document.getElementById("modal-save")!.textContent = "Save";
-  (document.getElementById("m-title") as HTMLInputElement).value    = t.title;
-  (document.getElementById("m-note")  as HTMLTextAreaElement).value = t.note ?? "";
-  (document.getElementById("m-due")   as HTMLInputElement).value    = t.due_date ?? "";
+  (document.getElementById("m-title")    as HTMLInputElement).value    = t.title;
+  (document.getElementById("m-note")     as HTMLTextAreaElement).value = t.note ?? "";
+  (document.getElementById("m-template") as HTMLInputElement).checked  = t.is_template ?? false;
+  (document.getElementById("m-due")      as HTMLInputElement).value    = t.due_date ?? "";
   setChoice("context",  t.context);
   setChoice("category", t.category);
   setChoice("status",   t.status);
+  syncDueDateUI();
   document.getElementById("modal-scrim")!.classList.remove("hidden");
   const noteEl2 = document.getElementById("m-note") as HTMLTextAreaElement;
   setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl2); }, 50);
@@ -805,16 +834,21 @@ async function saveModal() {
     if (!editingTask) return;
     const title     = (document.getElementById("m-title") as HTMLInputElement).value.trim();
     if (!title) { (document.getElementById("m-title") as HTMLInputElement).focus(); return; }
-    const context   = getChoice("context")  as Context;
-    const newStatus = getChoice("status")   as Status;
-    const due       = (document.getElementById("m-due")  as HTMLInputElement).value;
-    const note      = (document.getElementById("m-note") as HTMLTextAreaElement).value.trim();
+    const context    = getChoice("context")   as Context;
+    const category   = getChoice("category")  as Category;
+    const newStatus  = getChoice("status")    as Status;
+    const isTemplate = (document.getElementById("m-template") as HTMLInputElement).checked;
+    const due        = (document.getElementById("m-due")  as HTMLInputElement).value;
+    const note       = (document.getElementById("m-note") as HTMLTextAreaElement).value.trim();
     try {
       await invoke("update_task", {
-        input: { id: editingTask.id, title, context, due_date: due || null, note: note || null },
+        input: { id: editingTask.id, title, context, category, is_template: isTemplate, due_date: due || null, note: note || null },
       });
       if (newStatus !== editingTask.status) {
         await invoke(newStatus === "archived" ? "archive_task" : "unarchive_task", { id: editingTask.id });
+      }
+      if (category === "daily") {
+        try { await invoke("ensure_today_instances"); } catch {}
       }
       closeModal();
       if (currentView === "templates") await loadTemplates();
@@ -928,7 +962,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll<HTMLButtonElement>(".choice").forEach(btn => {
     btn.addEventListener("click", () => {
       const group = btn.closest<HTMLElement>("[data-group]")?.dataset.group;
-      if (group) setChoice(group, btn.dataset.v ?? "");
+      if (group) {
+        setChoice(group, btn.dataset.v ?? "");
+        if (group === "category" || group === "due-mode") syncDueDateUI();
+      }
     });
   });
 

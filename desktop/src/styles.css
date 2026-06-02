@@ -821,7 +821,8 @@ kbd {
 .modal-card[data-mode="edit"] .spawn-only { display: none; }
 
 .modal-card[data-mode="spawn"] .create-only,
-.modal-card[data-mode="spawn"] .edit-only { display: none; }
+.modal-card[data-mode="spawn"] .edit-only,
+.modal-card[data-mode="spawn"] .no-spawn { display: none; }
 
 /* Modal field label */
 .modal-field { display: flex; flex-direction: column; gap: 4px; }

@@ -188,7 +188,7 @@
               <button class="choice active" data-v="personal">personal</button>
               <button class="choice" data-v="work">work</button>
             </div>
-            <div class="choice-group create-only" data-group="category">
+            <div class="choice-group no-spawn" data-group="category">
               <button class="choice active" data-v="daily">daily</button>
               <button class="choice" data-v="normal">normal</button>
             </div>
@@ -196,7 +196,13 @@
 
           <!-- Due + Status (edit-only) -->
           <div class="modal-row">
-            <input id="m-due" type="date" class="modal-input modal-due" />
+            <div id="due-wrapper" style="display:flex; gap:10px; flex:1; align-items:center">
+              <div class="choice-group create-only" data-group="due-mode">
+                <button class="choice active" data-v="today">today</button>
+                <button class="choice" data-v="custom">custom</button>
+              </div>
+              <input id="m-due" type="date" class="modal-input modal-due" />
+            </div>
             <div class="choice-group edit-only" data-group="status">
               <button class="choice active" data-v="active">active</button>
               <button class="choice" data-v="archived">archived</button>
@@ -206,8 +212,8 @@
           <!-- Note: all modes -->
           <textarea id="m-note" class="modal-textarea" placeholder="Note… (supports markdown)" rows="5"></textarea>
 
-          <!-- Template toggle: create-only -->
-          <label class="switch-row create-only">
+          <!-- Template toggle: create + edit -->
+          <label class="switch-row no-spawn">
             <span class="switch-label">Is template</span>
             <input id="m-template" type="checkbox" class="switch-input" />
             <span class="switch-hint">save as reusable blueprint in Templates</span>

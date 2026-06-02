@@ -19,6 +19,9 @@ pub struct UpdateTaskInput {
     pub id: String,
     pub title: Option<String>,
     pub context: Option<Context>,
+    pub category: Option<Category>,
+    #[serde(default)]
+    pub is_template: Option<bool>,
     pub due_date: Option<Option<String>>,
     pub note: Option<Option<String>>,
 }

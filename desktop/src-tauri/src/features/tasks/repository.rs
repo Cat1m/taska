@@ -87,14 +87,21 @@ pub(super) async fn update(pool: &SqlitePool, input: UpdateTaskInput) -> AppResu
         .context
         .map(|c| c.as_str().to_string())
         .unwrap_or(current.context);
+    let category = input
+        .category
+        .map(|c| c.as_str().to_string())
+        .unwrap_or(current.category);
+    let is_template = input.is_template.unwrap_or(current.is_template);
     let due_date = input.due_date.unwrap_or(current.due_date);
     let note = input.note.unwrap_or(current.note);
     let now = now_iso();
     sqlx::query(
-        "UPDATE tasks SET title = ?, context = ?, due_date = ?, note = ?, updated_at = ? WHERE id = ?",
+        "UPDATE tasks SET title = ?, context = ?, category = ?, is_template = ?, due_date = ?, note = ?, updated_at = ? WHERE id = ?",
     )
     .bind(&title)
     .bind(&context)
+    .bind(&category)
+    .bind(is_template)
     .bind(due_date.as_deref())
     .bind(note.as_deref())
     .bind(&now)
