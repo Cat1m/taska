@@ -696,8 +696,10 @@ kbd {
   background: var(--bg-1);
   border: 1px solid var(--line-2);
   border-radius: 9px;
-  width: 480px;
-  max-width: calc(100vw - 32px);
+  width: clamp(480px, 55vw, 820px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   animation: modal-in 0.18s ease;
 }
@@ -753,6 +755,8 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .modal-input {
@@ -1314,7 +1318,7 @@ select.modal-select:focus { border-color: var(--green); }
   background: var(--bg-1);
   border: 1px solid var(--line);
   border-radius: 8px;
-  width: 560px; max-width: 92vw;
+  width: clamp(520px, 60vw, 900px);
   max-height: 80vh;
   display: flex; flex-direction: column;
 }
