@@ -41,10 +41,10 @@
             <span class="nav-label">Tasks</span>
             <span class="nav-pill" id="cnt-tasks"></span>
           </li>
-          <li class="nav-item" data-goto="spawned">
+          <li class="nav-item" data-goto="templates">
             <span class="nav-icon">⑂</span>
-            <span class="nav-label">Spawned</span>
-            <span class="nav-pill" id="cnt-spawned"></span>
+            <span class="nav-label">Templates</span>
+            <span class="nav-pill" id="cnt-templates"></span>
           </li>
           <li class="nav-item" data-goto="daily">
             <span class="nav-icon">▦</span>
@@ -67,7 +67,8 @@
               <p id="today-date-sub" class="view-sub"></p>
             </div>
             <span id="autosave-hint" class="autosave-hint"></span>
-            <button id="new-task-btn" class="btn">+ New <kbd>N</kbd></button>
+            <button id="from-template-btn" class="btn ghost">⑂ From template</button>
+          <button id="new-task-btn" class="btn">+ New <kbd>N</kbd></button>
           </div>
           <div class="panel">
             <div class="chip-bar">
@@ -102,14 +103,16 @@
           </div>
         </section>
 
-        <!-- ── Spawned ─────────────────────────────────────── -->
-        <section data-view="spawned" class="view">
+        <!-- ── Templates ──────────────────────────────────── -->
+        <section data-view="templates" class="view">
           <div class="view-head">
-            <div class="view-head-title"><h1>Spawned</h1></div>
-            <button id="spawn-template-btn" class="btn ghost">⑂ Spawn from template…</button>
+            <div class="view-head-title">
+              <h1>Templates</h1>
+              <p class="view-sub">reusable task blueprints</p>
+            </div>
           </div>
           <div class="panel">
-            <div id="spawned-list" class="spawned-list"></div>
+            <div id="templates-list" class="templates-list"></div>
           </div>
         </section>
 
@@ -201,13 +204,13 @@
           </div>
 
           <!-- Note: all modes -->
-          <textarea id="m-note" class="modal-textarea" placeholder="Note…" rows="3"></textarea>
+          <textarea id="m-note" class="modal-textarea" placeholder="Note… (supports markdown)" rows="5"></textarea>
 
           <!-- Template toggle: create-only -->
           <label class="switch-row create-only">
             <span class="switch-label">Is template</span>
             <input id="m-template" type="checkbox" class="switch-input" />
-            <span class="switch-hint">spawns instances into Spawned view</span>
+            <span class="switch-hint">save as reusable blueprint in Templates</span>
           </label>
 
         </div>

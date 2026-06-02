@@ -1,13 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { renderMarkdown } from "./markdown";
 
 // ─── Types ────────────────────────────────────────────────
 
 type Context  = "personal" | "work";
 type Category = "daily" | "normal";
 type Status   = "active" | "archived";
-type ViewName = "myday" | "tasks" | "spawned" | "daily";
+type ViewName = "myday" | "tasks" | "templates" | "daily";
 
 interface Task {
   id: string;
@@ -20,20 +22,6 @@ interface Task {
   note: string | null;
   created_at: string;
   updated_at: string;
-}
-
-interface Spawned {
-  id: string;
-  template_id: string;
-  title: string;
-  context: Context;
-  due_date: string | null;
-  is_done: boolean;
-  note: string | null;
-  created_at: string;
-  updated_at: string;
-  template_title: string;
-  template_note: string | null;
 }
 
 interface TodayDaily {
@@ -73,8 +61,8 @@ let taskSearch = "";
 let tasksList: Task[] = [];
 
 let editingTask: Task | null = null;
-let spawnTemplates: Task[] = [];
-let spawnFromTaskId: string | null = null;
+let templateList: Task[] = [];
+let selectedTemplateId: string | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -88,10 +76,6 @@ function formatDateLong(): string {
   return new Date().toLocaleDateString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
-}
-
-function formatShortDate(ts: string): string {
-  return new Date(ts).toLocaleDateString("en-GB", { month: "short", day: "numeric" });
 }
 
 /** Due-date display helpers for Tasks view */
@@ -149,6 +133,16 @@ function autoResize(el: HTMLTextAreaElement) {
   el.style.height = `${el.scrollHeight}px`;
 }
 
+function hookExternalLinks(container: HTMLElement) {
+  container.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(a => {
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      const href = a.getAttribute("href");
+      if (href) openUrl(href).catch(console.error);
+    });
+  });
+}
+
 // ─── Theme ────────────────────────────────────────────────
 
 const THEME_KEY = "taska-theme";
@@ -179,9 +173,9 @@ function setView(v: ViewName) {
   document.querySelectorAll<HTMLElement>(".view").forEach(el => {
     el.classList.toggle("active", el.dataset.view === v);
   });
-  if (v === "tasks")   loadTasks();
-  if (v === "spawned") loadSpawned();
-  if (v === "daily")   loadDaily();
+  if (v === "tasks")     loadTasks();
+  if (v === "templates") loadTemplates();
+  if (v === "daily")     loadDaily();
 }
 
 // ─── My Day ───────────────────────────────────────────────
@@ -430,17 +424,6 @@ function buildTaskRow(t: Task): HTMLElement {
   tags.appendChild(badge(`cat-${t.category}`, t.category));
   if (t.is_template) {
     tags.appendChild(badge("b-template", "template"));
-    if (t.category === "normal") {
-      const spawnBtn = document.createElement("button");
-      spawnBtn.className = "spawn-inline-btn";
-      spawnBtn.textContent = "⑂ spawn";
-      spawnBtn.title = "Spawn an instance from this template";
-      spawnBtn.addEventListener("click", e => {
-        e.stopPropagation();
-        openSpawnModal(t.id);
-      });
-      tags.appendChild(spawnBtn);
-    }
   }
   row.appendChild(tags);
 
@@ -463,125 +446,96 @@ function buildTaskRow(t: Task): HTMLElement {
   return row;
 }
 
-// ─── Spawned view ─────────────────────────────────────────
+// ─── Templates view ───────────────────────────────────────
 
-async function loadSpawned() {
-  let spawned: Spawned[] = [];
+async function loadTemplates() {
+  let templates: Task[] = [];
   try {
-    spawned = await invoke<Spawned[]>("list_spawned", { includeDone: true });
+    templates = await invoke<Task[]>("list_tasks", {
+      filter: { is_template: true, status: "active" },
+    });
   } catch (e) {
-    console.error("list_spawned:", e);
+    console.error("list_tasks (templates):", e);
   }
-  renderSpawned(spawned);
-
-  const active = spawned.filter(s => !s.is_done).length;
-  document.getElementById("cnt-spawned")!.textContent = active > 0 ? String(active) : "";
+  renderTemplates(templates);
+  document.getElementById("cnt-templates")!.textContent = templates.length > 0 ? String(templates.length) : "";
 }
 
-function renderSpawned(spawned: Spawned[]) {
-  const list = document.getElementById("spawned-list")!;
+function renderTemplates(templates: Task[]) {
+  const list = document.getElementById("templates-list")!;
   list.innerHTML = "";
 
-  if (spawned.length === 0) {
+  if (templates.length === 0) {
     const el = document.createElement("div");
     el.className = "empty-state";
-    el.textContent = "No spawned instances. Use ⑂ Spawn from template… to create one.";
+    el.textContent = "No templates yet. Create a task and check “Is template” to save it here.";
     list.appendChild(el);
     return;
   }
 
-  // Group by template_id
-  type Group = { templateTitle: string; context: Context; items: Spawned[] };
-  const groups = new Map<string, Group>();
-  for (const s of spawned) {
-    if (!groups.has(s.template_id)) {
-      groups.set(s.template_id, { templateTitle: s.template_title, context: s.context, items: [] });
-    }
-    groups.get(s.template_id)!.items.push(s);
-  }
-
-  for (const [, g] of groups) {
-    list.appendChild(buildSpawnGroup(g));
+  for (const t of templates) {
+    list.appendChild(buildTemplateCard(t));
   }
 }
 
-function buildSpawnGroup(g: { templateTitle: string; context: Context; items: Spawned[] }): HTMLElement {
-  const container = document.createElement("div");
-  container.className = "spawn-group";
+function buildTemplateCard(t: Task): HTMLElement {
+  const card = document.createElement("div");
+  card.className = "template-card";
 
-  const head = document.createElement("div");
-  head.className = "spawn-group-head";
+  const meta = document.createElement("div");
+  meta.className = "template-card-meta";
+  meta.appendChild(badge(`ctx-${t.context}`, t.context));
+  if (t.category === "daily") meta.appendChild(badge("cat-daily", "daily"));
+  card.appendChild(meta);
 
-  const icon = document.createElement("span");
-  icon.className = "spawn-group-icon";
-  icon.textContent = "⑂";
-  head.appendChild(icon);
+  const title = document.createElement("div");
+  title.className = "template-card-title";
+  title.textContent = t.title;
+  card.appendChild(title);
 
-  const title = document.createElement("span");
-  title.className = "spawn-group-title";
-  title.textContent = g.templateTitle;
-  head.appendChild(title);
+  if (t.note) {
+    const noteWrap = document.createElement("div");
+    noteWrap.className = "template-card-note md-content";
+    noteWrap.innerHTML = renderMarkdown(t.note);
+    hookExternalLinks(noteWrap);
+    card.appendChild(noteWrap);
 
-  head.appendChild(badge(`ctx-${g.context}`, g.context));
+    // Expand/collapse toggle — shown only if content overflows
+    const toggle = document.createElement("button");
+    toggle.className = "note-toggle-btn";
+    toggle.textContent = "show more";
+    toggle.style.display = "none";
+    toggle.addEventListener("click", () => {
+      const expanded = noteWrap.classList.toggle("expanded");
+      toggle.textContent = expanded ? "show less" : "show more";
+    });
+    card.appendChild(toggle);
 
-  const count = document.createElement("span");
-  count.className = "spawn-count-pill";
-  count.textContent = `${g.items.length} spawned`;
-  head.appendChild(count);
+    // After paint: check if content overflows the collapsed max-height
+    requestAnimationFrame(() => {
+      if (noteWrap.scrollHeight > noteWrap.clientHeight) {
+        toggle.style.display = "block";
+      }
+    });
+  }
 
-  container.appendChild(head);
+  const actions = document.createElement("div");
+  actions.className = "template-card-actions";
 
-  g.items.forEach((s, i) => {
-    container.appendChild(buildSpawnRow(s, i === g.items.length - 1));
-  });
+  const editBtn = document.createElement("button");
+  editBtn.className = "btn ghost template-edit-btn";
+  editBtn.textContent = "Edit";
+  editBtn.addEventListener("click", () => openEditModal(t));
+  actions.appendChild(editBtn);
 
-  return container;
-}
+  const useBtn = document.createElement("button");
+  useBtn.className = "btn ghost template-use-btn";
+  useBtn.textContent = "⑂ Use today";
+  useBtn.addEventListener("click", () => openUseTemplateModal(t.id));
+  actions.appendChild(useBtn);
 
-function buildSpawnRow(s: Spawned, isLast: boolean): HTMLElement {
-  const row = document.createElement("div");
-  row.className = `spawn-row${s.is_done ? " is-done" : ""}`;
-
-  const conn = document.createElement("span");
-  conn.className = "spawn-conn";
-  conn.textContent = isLast ? "└" : "├";
-  row.appendChild(conn);
-
-  const chkWrap = document.createElement("label");
-  chkWrap.className = "chk-wrap";
-  const chk = document.createElement("input");
-  chk.type = "checkbox";
-  chk.className = "chk chk-sm";
-  chk.checked = s.is_done;
-  chk.addEventListener("change", async () => {
-    try {
-      await invoke("toggle_spawned_done", { id: s.id, isDone: chk.checked });
-      await loadSpawned();
-    } catch (e) {
-      chk.checked = !chk.checked;
-      console.error("toggle_spawned_done:", e);
-    }
-  });
-  chkWrap.appendChild(chk);
-  row.appendChild(chkWrap);
-
-  const stitle = document.createElement("span");
-  stitle.className = "spawn-stitle";
-  stitle.textContent = s.title;
-  row.appendChild(stitle);
-
-  const sdate = document.createElement("span");
-  sdate.className = "spawn-sdate";
-  sdate.textContent = formatShortDate(s.created_at);
-  row.appendChild(sdate);
-
-  const status = s.is_done ? "done" : s.due_date ? "scheduled" : "active";
-  const pill = document.createElement("span");
-  pill.className = `spawn-pill sp-${status}`;
-  pill.textContent = status;
-  row.appendChild(pill);
-
-  return row;
+  card.appendChild(actions);
+  return card;
 }
 
 // ─── Daily view ───────────────────────────────────────────
@@ -715,12 +669,12 @@ function renderHeatmap(dateMap: Map<string, { done: number; total: number }>) {
 async function updateNavCounts() {
   refreshMyDayPills();
   try {
-    const [tasks, spawned] = await Promise.all([
+    const [tasks, templates] = await Promise.all([
       invoke<Task[]>("list_tasks", { filter: { status: "active" } }),
-      invoke<Spawned[]>("list_spawned", {}),
+      invoke<Task[]>("list_tasks", { filter: { is_template: true, status: "active" } }),
     ]);
-    document.getElementById("cnt-tasks")!.textContent   = tasks.length   > 0 ? String(tasks.length)   : "";
-    document.getElementById("cnt-spawned")!.textContent = spawned.length > 0 ? String(spawned.length) : "";
+    document.getElementById("cnt-tasks")!.textContent     = tasks.length     > 0 ? String(tasks.length)     : "";
+    document.getElementById("cnt-templates")!.textContent = templates.length > 0 ? String(templates.length) : "";
   } catch (e) {
     console.error("updateNavCounts:", e);
   }
@@ -752,7 +706,8 @@ function openCreateModal(defaultCategory: Category = "normal") {
   setChoice("category", defaultCategory);
   setChoice("status",   "active");
   document.getElementById("modal-scrim")!.classList.remove("hidden");
-  setTimeout(() => (document.getElementById("m-title") as HTMLInputElement).focus(), 50);
+  const noteEl = document.getElementById("m-note") as HTMLTextAreaElement;
+  setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl); }, 50);
 }
 
 function openEditModal(t: Task) {
@@ -769,21 +724,20 @@ function openEditModal(t: Task) {
   setChoice("category", t.category);
   setChoice("status",   t.status);
   document.getElementById("modal-scrim")!.classList.remove("hidden");
-  setTimeout(() => (document.getElementById("m-title") as HTMLInputElement).focus(), 50);
+  const noteEl2 = document.getElementById("m-note") as HTMLTextAreaElement;
+  setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl2); }, 50);
 }
 
-async function openSpawnModal(preselectedId?: string) {
+async function openUseTemplateModal(preselectedId?: string) {
   try {
-    // Backend only allows category=normal templates to be spawned
-    spawnTemplates = await invoke<Task[]>("list_tasks", {
-      filter: { is_template: true, status: "active", category: "normal" },
+    templateList = await invoke<Task[]>("list_tasks", {
+      filter: { is_template: true, status: "active" },
     });
   } catch {
-    spawnTemplates = [];
+    templateList = [];
   }
 
-  if (spawnTemplates.length === 0) {
-    // Fallback: open create modal suggesting template creation
+  if (templateList.length === 0) {
     openCreateModal("normal");
     (document.getElementById("m-template") as HTMLInputElement).checked = true;
     return;
@@ -791,38 +745,38 @@ async function openSpawnModal(preselectedId?: string) {
 
   const select = document.getElementById("spawn-template-select") as HTMLSelectElement;
   select.innerHTML = "";
-  for (const t of spawnTemplates) {
+  for (const t of templateList) {
     const opt = document.createElement("option");
     opt.value = t.id;
     opt.textContent = t.title;
     select.appendChild(opt);
   }
   if (preselectedId) select.value = preselectedId;
-  fillSpawnFields(select.value);
+  fillTemplateFields(select.value);
 
   const card = document.getElementById("modal-card")!;
   card.dataset.mode = "spawn";
-  document.getElementById("modal-title")!.textContent = "Spawn instance";
-  document.getElementById("modal-mode-tag")!.textContent = "SPAWN";
-  document.getElementById("modal-save")!.textContent = "Spawn";
+  document.getElementById("modal-title")!.textContent = "Use template today";
+  document.getElementById("modal-mode-tag")!.textContent = "USE";
+  document.getElementById("modal-save")!.textContent = "Add to My Day";
   (document.getElementById("m-note") as HTMLTextAreaElement).value = "";
-  (document.getElementById("m-due")  as HTMLInputElement).value    = "";
+  (document.getElementById("m-due")  as HTMLInputElement).value    = isoDate(new Date());
   document.getElementById("modal-scrim")!.classList.remove("hidden");
   setTimeout(() => (document.getElementById("m-title") as HTMLInputElement).focus(), 50);
 }
 
-function fillSpawnFields(templateId: string) {
-  const t = spawnTemplates.find(t => t.id === templateId);
+function fillTemplateFields(templateId: string) {
+  const t = templateList.find(t => t.id === templateId);
   if (!t) return;
-  spawnFromTaskId = t.id;
+  selectedTemplateId = t.id;
   (document.getElementById("m-title") as HTMLInputElement).value = t.title;
   setChoice("context", t.context);
 }
 
 function closeModal() {
   document.getElementById("modal-scrim")!.classList.add("hidden");
-  editingTask    = null;
-  spawnFromTaskId = null;
+  editingTask        = null;
+  selectedTemplateId = null;
 }
 
 async function saveModal() {
@@ -863,31 +817,36 @@ async function saveModal() {
         await invoke(newStatus === "archived" ? "archive_task" : "unarchive_task", { id: editingTask.id });
       }
       closeModal();
+      if (currentView === "templates") await loadTemplates();
       await loadTasks();
       await loadMyDay();
       await updateNavCounts();
     } catch (e) { console.error("update_task:", e); }
 
   } else if (mode === "spawn") {
-    if (!spawnFromTaskId) return;
-    const title   = (document.getElementById("m-title") as HTMLInputElement).value.trim();
+    if (!selectedTemplateId) return;
+    const tmpl = templateList.find(t => t.id === selectedTemplateId);
+    if (!tmpl) return;
+    const title   = (document.getElementById("m-title") as HTMLInputElement).value.trim() || tmpl.title;
     const context = getChoice("context") as Context;
-    const due     = (document.getElementById("m-due")  as HTMLInputElement).value;
+    const due     = (document.getElementById("m-due")  as HTMLInputElement).value || isoDate(new Date());
     const note    = (document.getElementById("m-note") as HTMLTextAreaElement).value.trim();
     try {
-      await invoke("spawn_task", {
+      await invoke("create_task", {
         input: {
-          template_id: spawnFromTaskId,
-          title: title || null,
+          title,
           context,
-          due_date: due || null,
+          category: "normal" as Category,
+          is_template: false,
+          due_date: due,
           note: note || null,
         },
       });
       closeModal();
-      await loadSpawned();
+      setView("myday");
+      await loadMyDay();
       await updateNavCounts();
-    } catch (e) { console.error("spawn_task:", e); }
+    } catch (e) { console.error("use_template:", e); }
   }
 }
 
@@ -955,8 +914,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
   document.getElementById("new-task-tasks-btn")!.addEventListener("click", () => openCreateModal("normal"));
 
-  // ── Spawned ──
-  document.getElementById("spawn-template-btn")!.addEventListener("click", () => openSpawnModal());
+  // ── From template (My Day) ──
+  document.getElementById("from-template-btn")!.addEventListener("click", () => openUseTemplateModal());
 
   // ── Modal ──
   document.getElementById("modal-close")!.addEventListener("click",  closeModal);
@@ -973,9 +932,13 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Spawn template select → fill fields
+  // Note textarea → auto-resize
+  const modalNote = document.getElementById("m-note") as HTMLTextAreaElement;
+  modalNote.addEventListener("input", () => autoResize(modalNote));
+
+  // Template select in modal → fill fields
   document.getElementById("spawn-template-select")!.addEventListener("change", e => {
-    fillSpawnFields((e.target as HTMLSelectElement).value);
+    fillTemplateFields((e.target as HTMLSelectElement).value);
   });
 
   // ── Reset banner ──
@@ -1001,7 +964,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     if      (e.key === "1") setView("myday");
     else if (e.key === "2") setView("tasks");
-    else if (e.key === "3") setView("spawned");
+    else if (e.key === "3") setView("templates");
     else if (e.key === "4") setView("daily");
     else if (e.key === "n" || e.key === "N") {
       openCreateModal(currentView === "myday" ? "daily" : "normal");
