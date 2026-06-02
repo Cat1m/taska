@@ -9,12 +9,28 @@ src/                    # TypeScript frontend (Vite)
 
 src-tauri/src/          # Rust backend (Tauri)
   lib.rs                # App setup: DB init, register commands, midnight scheduler
-  db.rs                 # SQLite pool initialization
-  models.rs             # Enums: Context (personal/work), Category (daily/normal), Status (active/archived)
-  tasks.rs              # Tauri commands: create/list/update/archive tasks
-  spawned.rs            # Tauri commands: spawn task instances from templates
-  daily.rs              # Tauri commands: daily instances CRUD, heatmap/calendar queries
+  db.rs                 # SQLite pool initialization (AppState { pool })
+  models.rs             # Shared enums: Context, Category, Status + domain structs Task, DailyInstance, SpawnedTask
   error.rs              # AppError → serialized String for frontend
+  commands.rs           # Utility commands (ping)
+
+  features/             # Feature modules — Flutter features-first pattern
+    tasks/
+      mod.rs            # pub use commands::*
+      models.rs         # Input DTOs: CreateTaskInput, UpdateTaskInput, TaskFilter
+      repository.rs     # All sqlx queries (pub(super)) — the data layer
+      commands.rs       # Thin #[tauri::command] wrappers — the IPC layer
+    daily/
+      mod.rs            # pub use commands::*, re-exports scheduler fns for lib.rs
+      models.rs         # TodayDaily, HistoryEntry
+      repository.rs     # All sqlx queries
+      commands.rs       # Thin #[tauri::command] wrappers
+      scheduler.rs      # pub local_today(), until_next_local_midnight(), ensure_instances_for()
+    spawned/
+      mod.rs            # pub use commands::*
+      models.rs         # SpawnedView, CreateSpawnInput, UpdateSpawnInput
+      repository.rs     # All sqlx queries including JOINs
+      commands.rs       # Thin #[tauri::command] wrappers
 
 src-tauri/migrations/
   0001_init.sql         # SQLite schema: tasks, daily_instances, spawned_tasks

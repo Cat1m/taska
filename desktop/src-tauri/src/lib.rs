@@ -1,11 +1,10 @@
 mod commands;
-mod daily;
 mod db;
 mod error;
+mod features;
 mod models;
-mod spawned;
-mod tasks;
 
+use features::daily;
 use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -16,7 +15,6 @@ pub fn run() {
             let handle = app.handle().clone();
             tauri::async_runtime::block_on(async {
                 let pool = db::init_db(&handle).await.expect("init db");
-                // Ensure today's instances at startup.
                 if let Err(e) =
                     daily::ensure_instances_for(&pool, &daily::local_today()).await
                 {
@@ -25,16 +23,13 @@ pub fn run() {
                 handle.manage(db::AppState { pool });
             });
 
-            // Schedule a midnight reset loop in the Tauri async runtime.
             let scheduler_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
                 loop {
                     let wait = daily::until_next_local_midnight();
                     tokio::time::sleep(wait).await;
                     let state = scheduler_handle.state::<db::AppState>();
-                    match daily::ensure_instances_for(&state.pool, &daily::local_today())
-                        .await
-                    {
+                    match daily::ensure_instances_for(&state.pool, &daily::local_today()).await {
                         Ok(n) => {
                             let _ = scheduler_handle.emit("daily-reset", n);
                         }
@@ -47,24 +42,24 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::ping,
-            tasks::create_task,
-            tasks::get_task,
-            tasks::list_tasks,
-            tasks::update_task,
-            tasks::archive_task,
-            tasks::unarchive_task,
-            daily::ensure_today_instances,
-            daily::list_today_daily,
-            daily::list_daily_history,
-            daily::list_daily_history_between,
-            daily::toggle_daily_done,
-            daily::toggle_normal_task_today,
-            daily::set_daily_note,
-            spawned::spawn_task,
-            spawned::list_spawned,
-            spawned::toggle_spawned_done,
-            spawned::update_spawned,
-            spawned::delete_spawned,
+            features::tasks::create_task,
+            features::tasks::get_task,
+            features::tasks::list_tasks,
+            features::tasks::update_task,
+            features::tasks::archive_task,
+            features::tasks::unarchive_task,
+            features::daily::ensure_today_instances,
+            features::daily::list_today_daily,
+            features::daily::list_daily_history,
+            features::daily::list_daily_history_between,
+            features::daily::toggle_daily_done,
+            features::daily::toggle_normal_task_today,
+            features::daily::set_daily_note,
+            features::spawned::spawn_task,
+            features::spawned::list_spawned,
+            features::spawned::toggle_spawned_done,
+            features::spawned::update_spawned,
+            features::spawned::delete_spawned,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
