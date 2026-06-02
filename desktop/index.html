@@ -58,7 +58,8 @@
       </nav>
 
       <main class="content">
-        <!-- My Day view -->
+
+        <!-- ── My Day ─────────────────────────────────────── -->
         <section data-view="myday" class="view active">
           <div class="view-head">
             <div class="view-head-title">
@@ -71,47 +72,85 @@
           <div class="panel">
             <div class="chip-bar">
               <button class="chip active" data-f="all">all</button>
-              <button class="chip" data-f="personal">
-                <span class="ctx-dot personal"></span>personal
-              </button>
-              <button class="chip" data-f="work">
-                <span class="ctx-dot work"></span>work
-              </button>
+              <button class="chip" data-f="personal"><span class="ctx-dot personal"></span>personal</button>
+              <button class="chip" data-f="work"><span class="ctx-dot work"></span>work</button>
             </div>
             <div id="myday-meta" class="myday-meta"></div>
             <div id="myday-list" class="myday-list"></div>
           </div>
         </section>
 
-        <!-- Tasks view (stub) -->
+        <!-- ── Tasks ──────────────────────────────────────── -->
         <section data-view="tasks" class="view">
           <div class="view-head">
             <div class="view-head-title"><h1>Tasks</h1></div>
+            <input id="task-search" type="search" class="search-input" placeholder="⌕  search…" autocomplete="off" />
+            <div class="seg-filter" id="task-filter">
+              <button class="seg active" data-filter="active">active</button>
+              <button class="seg" data-filter="archived">archived</button>
+            </div>
+            <button id="new-task-tasks-btn" class="btn">+ New <kbd>N</kbd></button>
           </div>
-          <div class="panel stub-panel">
-            <span class="stub-label">Tasks view — coming soon</span>
+          <div class="panel tasks-panel">
+            <div class="col-head">
+              <span></span>
+              <span>Task</span>
+              <span>Tags</span>
+              <span>Due</span>
+            </div>
+            <div id="tasks-list" class="tasks-list"></div>
           </div>
         </section>
 
-        <!-- Spawned view (stub) -->
+        <!-- ── Spawned ─────────────────────────────────────── -->
         <section data-view="spawned" class="view">
           <div class="view-head">
             <div class="view-head-title"><h1>Spawned</h1></div>
+            <button id="spawn-template-btn" class="btn ghost">⑂ Spawn from template…</button>
           </div>
-          <div class="panel stub-panel">
-            <span class="stub-label">Spawned view — coming soon</span>
+          <div class="panel">
+            <div id="spawned-list" class="spawned-list"></div>
           </div>
         </section>
 
-        <!-- Daily view (stub) -->
+        <!-- ── Daily ──────────────────────────────────────── -->
         <section data-view="daily" class="view">
           <div class="view-head">
-            <div class="view-head-title"><h1>Daily</h1></div>
+            <div class="view-head-title">
+              <h1>Daily</h1>
+              <p class="view-sub">completion heatmap</p>
+            </div>
           </div>
-          <div class="panel stub-panel">
-            <span class="stub-label">Daily analytics — coming soon</span>
+          <div class="panel daily-panel">
+            <div class="stat-tiles">
+              <div class="stat-tile">
+                <span class="stat-value" id="stat-today-done">—</span>
+                <span class="stat-label">today done</span>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-value stat-green" id="stat-rate">—</span>
+                <span class="stat-label">today rate</span>
+              </div>
+              <div class="stat-tile">
+                <span class="stat-value" id="stat-streak">—</span>
+                <span class="stat-label">best streak</span>
+              </div>
+            </div>
+            <div class="heat-wrap">
+              <div id="heatmap"></div>
+            </div>
+            <div class="heat-legend">
+              <span class="heat-legend-text">less</span>
+              <span class="heat-legend-cell" data-lvl="0"></span>
+              <span class="heat-legend-cell" data-lvl="1"></span>
+              <span class="heat-legend-cell" data-lvl="2"></span>
+              <span class="heat-legend-cell" data-lvl="3"></span>
+              <span class="heat-legend-cell" data-lvl="4"></span>
+              <span class="heat-legend-text">more</span>
+            </div>
           </div>
         </section>
+
       </main>
     </div>
 
@@ -121,39 +160,56 @@
       <button id="dismiss-reset" class="banner-dismiss">×</button>
     </div>
 
-    <!-- Unified modal -->
+    <!-- ── Unified modal ──────────────────────────────────── -->
     <div id="modal-scrim" class="modal-scrim hidden">
-      <div class="modal-card">
+      <div class="modal-card" id="modal-card" data-mode="create">
         <div class="modal-head">
           <span id="modal-title" class="modal-title-text">Create task</span>
           <span id="modal-mode-tag" class="mode-tag">CREATE</span>
           <button id="modal-close" class="modal-close-btn">×</button>
         </div>
         <div class="modal-body">
+
+          <!-- Spawn-only: template picker -->
+          <div class="spawn-only modal-field">
+            <label class="field-label" for="spawn-template-select">Template</label>
+            <select id="spawn-template-select" class="modal-select"></select>
+          </div>
+
+          <!-- Title: all modes -->
           <input id="m-title" type="text" class="modal-input" placeholder="Task title" autocomplete="off" />
+
+          <!-- Context (all modes) + Category (create-only) -->
           <div class="modal-row">
             <div class="choice-group" data-group="context">
               <button class="choice active" data-v="personal">personal</button>
               <button class="choice" data-v="work">work</button>
             </div>
-            <div class="choice-group" data-group="category">
+            <div class="choice-group create-only" data-group="category">
               <button class="choice active" data-v="daily">daily</button>
               <button class="choice" data-v="normal">normal</button>
             </div>
           </div>
+
+          <!-- Due + Status (edit-only) -->
           <div class="modal-row">
             <input id="m-due" type="date" class="modal-input modal-due" />
-            <div class="choice-group" data-group="status" id="status-group">
+            <div class="choice-group edit-only" data-group="status">
               <button class="choice active" data-v="active">active</button>
               <button class="choice" data-v="archived">archived</button>
             </div>
           </div>
+
+          <!-- Note: all modes -->
           <textarea id="m-note" class="modal-textarea" placeholder="Note…" rows="3"></textarea>
-          <label class="switch-row">
+
+          <!-- Template toggle: create-only -->
+          <label class="switch-row create-only">
             <span class="switch-label">Is template</span>
             <input id="m-template" type="checkbox" class="switch-input" />
             <span class="switch-hint">spawns instances into Spawned view</span>
           </label>
+
         </div>
         <div class="modal-foot">
           <button id="modal-cancel" class="btn ghost">Cancel <kbd>Esc</kbd></button>
