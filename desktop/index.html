@@ -64,7 +64,11 @@
           <div class="view-head">
             <div class="view-head-title">
               <h1>My Day</h1>
-              <p id="today-date-sub" class="view-sub"></p>
+              <div class="myday-date-nav">
+                <button id="myday-prev-btn" class="btn ghost icon-btn" title="Yesterday">‹</button>
+                <p id="today-date-sub" class="view-sub"></p>
+                <button id="myday-next-btn" class="btn ghost icon-btn" title="Back to today" style="display:none">›</button>
+              </div>
             </div>
             <span id="autosave-hint" class="autosave-hint"></span>
             <button id="from-template-btn" class="btn ghost">⑂ From template</button>

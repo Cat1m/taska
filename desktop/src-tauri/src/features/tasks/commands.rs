@@ -30,6 +30,11 @@ pub async fn update_task(state: State<'_, AppState>, input: UpdateTaskInput) -> 
 }
 
 #[tauri::command]
+pub async fn delete_task(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    repo::delete(&state.pool, &id).await
+}
+
+#[tauri::command]
 pub async fn archive_task(state: State<'_, AppState>, id: String) -> AppResult<Task> {
     repo::set_status(&state.pool, &id, Status::Archived).await
 }

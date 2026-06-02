@@ -111,6 +111,17 @@ pub(super) async fn update(pool: &SqlitePool, input: UpdateTaskInput) -> AppResu
     find_by_id(pool, &input.id).await
 }
 
+pub(super) async fn delete(pool: &SqlitePool, id: &str) -> AppResult<()> {
+    let res = sqlx::query("DELETE FROM tasks WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("task not found: {id}")));
+    }
+    Ok(())
+}
+
 pub(super) async fn set_status(pool: &SqlitePool, id: &str, status: Status) -> AppResult<Task> {
     let now = now_iso();
     let res = sqlx::query("UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?")

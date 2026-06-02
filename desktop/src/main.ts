@@ -54,6 +54,7 @@ interface HistoryEntry {
 let currentView: ViewName = "myday";
 let myDayFilter: "all" | "personal" | "work" = "all";
 let myDayInstances: TodayDaily[] = [];
+let currentMyDayDate: string = isoDate(new Date());
 const noteTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 let taskFilter: "active" | "archived" = "active";
@@ -72,10 +73,29 @@ function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function formatDateLong(): string {
-  return new Date().toLocaleDateString("en-GB", {
+function formatDateLong(d: Date = new Date()): string {
+  return d.toLocaleDateString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+}
+
+function yesterdayIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return isoDate(d);
+}
+
+function isViewingToday(): boolean {
+  return currentMyDayDate === isoDate(new Date());
+}
+
+function updateMyDayDateNav() {
+  const viewing = isViewingToday();
+  document.getElementById("myday-prev-btn")!.style.display = viewing ? "" : "none";
+  document.getElementById("myday-next-btn")!.style.display = viewing ? "none" : "";
+  document.getElementById("today-date-sub")!.textContent = viewing
+    ? formatDateLong()
+    : "Yesterday — " + formatDateLong(new Date(currentMyDayDate + "T00:00:00"));
 }
 
 /** Due-date display helpers for Tasks view */
@@ -182,13 +202,16 @@ function setView(v: ViewName) {
 
 async function loadMyDay() {
   try {
-    myDayInstances = await invoke<TodayDaily[]>("list_today_daily");
+    myDayInstances = isViewingToday()
+      ? await invoke<TodayDaily[]>("list_today_daily")
+      : await invoke<TodayDaily[]>("list_daily_for_date", { date: currentMyDayDate });
   } catch (e) {
-    console.error("list_today_daily:", e);
+    console.error("loadMyDay:", e);
     myDayInstances = [];
   }
   renderMyDay();
   refreshMyDayPills();
+  updateMyDayDateNav();
 }
 
 function renderMyDay() {
@@ -253,6 +276,23 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
   body.appendChild(noteArea);
   body.appendChild(saveStatus);
   row.appendChild(body);
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "instance-del-btn";
+  delBtn.textContent = "×";
+  delBtn.title = "Remove from today";
+  delBtn.addEventListener("click", async () => {
+    const msg = inst.kind === "daily"
+      ? `Remove "${inst.title}" from today? (Will return tomorrow as a daily task.)`
+      : `Remove "${inst.title}" from today? (Task still exists in your task list.)`;
+    if (!window.confirm(msg)) return;
+    try {
+      await invoke("remove_from_today", { id: inst.id });
+      document.getElementById(`row-${inst.id}`)?.remove();
+      await updateNavCounts();
+    } catch (e) { console.error("remove_from_today:", e); }
+  });
+  row.appendChild(delBtn);
 
   requestAnimationFrame(() => autoResize(noteArea));
   return row;
@@ -900,8 +940,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   const sys   = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   applyTheme(saved ?? sys);
 
-  // Today date subtitle
-  document.getElementById("today-date-sub")!.textContent = formatDateLong();
+  // Today date subtitle + yesterday nav
+  updateMyDayDateNav();
+  document.getElementById("myday-prev-btn")!.addEventListener("click", async () => {
+    currentMyDayDate = yesterdayIso();
+    await loadMyDay();
+  });
+  document.getElementById("myday-next-btn")!.addEventListener("click", async () => {
+    currentMyDayDate = isoDate(new Date());
+    await loadMyDay();
+  });
 
   // Window controls
   try {

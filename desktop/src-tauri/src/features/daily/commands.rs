@@ -17,6 +17,15 @@ pub async fn list_today_daily(state: State<'_, AppState>) -> AppResult<Vec<Today
 }
 
 #[tauri::command]
+pub async fn list_daily_for_date(
+    state: State<'_, AppState>,
+    date: String,
+) -> AppResult<Vec<TodayDaily>> {
+    ensure_instances_for(&state.pool, &date).await?;
+    repo::list_today(&state.pool, &date).await
+}
+
+#[tauri::command]
 pub async fn toggle_daily_done(
     state: State<'_, AppState>,
     id: String,
@@ -41,6 +50,11 @@ pub async fn toggle_normal_task_today(
     is_done: bool,
 ) -> AppResult<()> {
     repo::toggle_normal_today(&state.pool, &task_id, &local_today(), is_done).await
+}
+
+#[tauri::command]
+pub async fn remove_from_today(state: State<'_, AppState>, id: String) -> AppResult<()> {
+    repo::remove_instance(&state.pool, &id).await
 }
 
 #[tauri::command]

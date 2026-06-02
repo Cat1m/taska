@@ -301,6 +301,15 @@ body {
   font-weight: 400;
 }
 
+.myday-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.myday-date-nav .view-sub { margin-top: 0; }
+.icon-btn { padding: 1px 7px; font-size: 15px; line-height: 1.4; }
+
 .autosave-hint {
   font-size: 10px;
   align-self: center;
@@ -428,7 +437,7 @@ kbd {
 /* ===== INSTANCE ROW ===== */
 .instance-row {
   display: grid;
-  grid-template-columns: 26px 1fr;
+  grid-template-columns: 26px 1fr auto;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   transition: background 0.1s;
@@ -436,6 +445,21 @@ kbd {
 .instance-row:last-child { border-bottom: none; }
 .instance-row:hover { background: var(--bg-2); }
 .instance-row.is-done { opacity: 0.6; }
+
+.instance-del-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--fg-3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  align-self: start;
+  transition: opacity 0.15s, color 0.15s;
+}
+.instance-row:hover .instance-del-btn { opacity: 1; }
+.instance-del-btn:hover { color: #e05c5c; }
 
 /* Checkbox */
 .chk-wrap {

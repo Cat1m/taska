@@ -97,6 +97,17 @@ pub(super) async fn toggle_normal_today(
     Ok(())
 }
 
+pub(super) async fn remove_instance(pool: &SqlitePool, id: &str) -> AppResult<()> {
+    let res = sqlx::query("DELETE FROM daily_instances WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::Other(format!("instance not found: {id}")));
+    }
+    Ok(())
+}
+
 pub(super) async fn history(pool: &SqlitePool, days: i64) -> AppResult<Vec<HistoryEntry>> {
     let days = days.clamp(1, 365);
     let today = Local::now().date_naive();
