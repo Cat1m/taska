@@ -20,6 +20,7 @@ pub struct TodayDaily {
     pub context: String,
     pub is_template: bool,
     pub template_note: Option<String>,
+    pub instructions: Option<String>,
     pub date: String,
     pub is_done: bool,
     pub note: Option<String>,

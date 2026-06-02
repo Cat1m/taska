@@ -12,6 +12,8 @@ pub struct CreateTaskInput {
     pub due_date: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
+    #[serde(default)]
+    pub instructions: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -22,8 +24,9 @@ pub struct UpdateTaskInput {
     pub category: Option<Category>,
     #[serde(default)]
     pub is_template: Option<bool>,
-    pub due_date: Option<Option<String>>,
-    pub note: Option<Option<String>>,
+    pub due_date: Option<String>,
+    pub note: Option<String>,
+    pub instructions: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]

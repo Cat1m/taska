@@ -94,6 +94,7 @@ pub struct Task {
     pub status: String,
     pub due_date: Option<String>,
     pub note: Option<String>,
+    pub instructions: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -27,8 +27,8 @@ pub(super) async fn insert(pool: &SqlitePool, input: CreateTaskInput) -> AppResu
     let now = now_iso();
     sqlx::query(
         "INSERT INTO tasks (id, title, context, category, is_template, status,
-                            due_date, note, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)",
+                            due_date, note, instructions, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&title)
@@ -37,6 +37,7 @@ pub(super) async fn insert(pool: &SqlitePool, input: CreateTaskInput) -> AppResu
     .bind(input.is_template)
     .bind(input.due_date.as_deref())
     .bind(input.note.as_deref())
+    .bind(input.instructions.as_deref())
     .bind(&now)
     .bind(&now)
     .execute(pool)
@@ -92,11 +93,12 @@ pub(super) async fn update(pool: &SqlitePool, input: UpdateTaskInput) -> AppResu
         .map(|c| c.as_str().to_string())
         .unwrap_or(current.category);
     let is_template = input.is_template.unwrap_or(current.is_template);
-    let due_date = input.due_date.unwrap_or(current.due_date);
-    let note = input.note.unwrap_or(current.note);
+    let due_date = input.due_date;
+    let note = input.note;
+    let instructions = input.instructions;
     let now = now_iso();
     sqlx::query(
-        "UPDATE tasks SET title = ?, context = ?, category = ?, is_template = ?, due_date = ?, note = ?, updated_at = ? WHERE id = ?",
+        "UPDATE tasks SET title = ?, context = ?, category = ?, is_template = ?, due_date = ?, note = ?, instructions = ?, updated_at = ? WHERE id = ?",
     )
     .bind(&title)
     .bind(&context)
@@ -104,6 +106,7 @@ pub(super) async fn update(pool: &SqlitePool, input: UpdateTaskInput) -> AppResu
     .bind(is_template)
     .bind(due_date.as_deref())
     .bind(note.as_deref())
+    .bind(instructions.as_deref())
     .bind(&now)
     .bind(&input.id)
     .execute(pool)

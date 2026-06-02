@@ -20,6 +20,7 @@ interface Task {
   status: Status;
   due_date: string | null;
   note: string | null;
+  instructions: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +32,7 @@ interface TodayDaily {
   context: Context;
   is_template: boolean;
   template_note: string | null;
+  instructions: string | null;
   date: string;
   is_done: boolean;
   note: string | null;
@@ -262,6 +264,20 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
   titleRow.appendChild(badge(`ctx-${inst.context}`, inst.context));
   body.appendChild(titleRow);
 
+  if (inst.instructions) {
+    const instrBlock = document.createElement("div");
+    instrBlock.className = "instructions-block";
+    const instrLabel = document.createElement("span");
+    instrLabel.className = "instructions-label";
+    instrLabel.textContent = "Hướng dẫn";
+    const instrText = document.createElement("p");
+    instrText.className = "instructions-text";
+    instrText.textContent = inst.instructions;
+    instrBlock.appendChild(instrLabel);
+    instrBlock.appendChild(instrText);
+    body.appendChild(instrBlock);
+  }
+
   const noteArea = document.createElement("textarea");
   noteArea.className = "note-field";
   noteArea.placeholder = "note for today…";
@@ -449,6 +465,12 @@ function buildTaskRow(t: Task): HTMLElement {
   titleEl.className = "task-title-text";
   titleEl.textContent = t.title;
   main.appendChild(titleEl);
+  if (t.instructions) {
+    const instrPreview = document.createElement("span");
+    instrPreview.className = "task-instructions-preview";
+    instrPreview.textContent = "▸ " + t.instructions.slice(0, 80);
+    main.appendChild(instrPreview);
+  }
   if (t.note) {
     const preview = document.createElement("span");
     preview.className = "task-note-preview";
@@ -532,6 +554,21 @@ function buildTemplateCard(t: Task): HTMLElement {
   title.className = "template-card-title";
   title.textContent = t.title;
   card.appendChild(title);
+
+  if (t.instructions) {
+    const instrBlock = document.createElement("div");
+    instrBlock.className = "instructions-block";
+    const instrLabel = document.createElement("span");
+    instrLabel.className = "instructions-label";
+    instrLabel.textContent = "Hướng dẫn";
+    const instrContent = document.createElement("div");
+    instrContent.className = "instructions-text md-content";
+    instrContent.innerHTML = renderMarkdown(t.instructions);
+    hookExternalLinks(instrContent);
+    instrBlock.appendChild(instrLabel);
+    instrBlock.appendChild(instrContent);
+    card.appendChild(instrBlock);
+  }
 
   if (t.note) {
     const noteWrap = document.createElement("div");
@@ -764,9 +801,10 @@ function openCreateModal(defaultCategory: Category = "normal") {
   document.getElementById("modal-title")!.textContent = "Create task";
   document.getElementById("modal-mode-tag")!.textContent = "CREATE";
   document.getElementById("modal-save")!.textContent = "Save";
-  (document.getElementById("m-title")    as HTMLInputElement).value    = "";
-  (document.getElementById("m-note")     as HTMLTextAreaElement).value = "";
-  (document.getElementById("m-template") as HTMLInputElement).checked  = false;
+  (document.getElementById("m-title")        as HTMLInputElement).value    = "";
+  (document.getElementById("m-instructions") as HTMLTextAreaElement).value = "";
+  (document.getElementById("m-note")         as HTMLTextAreaElement).value = "";
+  (document.getElementById("m-template")     as HTMLInputElement).checked  = false;
   setChoice("context",  "personal");
   setChoice("category", defaultCategory);
   setChoice("due-mode", "today");
@@ -784,9 +822,10 @@ function openEditModal(t: Task) {
   document.getElementById("modal-title")!.textContent = "Edit task";
   document.getElementById("modal-mode-tag")!.textContent = "EDIT";
   document.getElementById("modal-save")!.textContent = "Save";
-  (document.getElementById("m-title")    as HTMLInputElement).value    = t.title;
-  (document.getElementById("m-note")     as HTMLTextAreaElement).value = t.note ?? "";
-  (document.getElementById("m-template") as HTMLInputElement).checked  = t.is_template ?? false;
+  (document.getElementById("m-title")        as HTMLInputElement).value    = t.title;
+  (document.getElementById("m-instructions") as HTMLTextAreaElement).value = t.instructions ?? "";
+  (document.getElementById("m-note")         as HTMLTextAreaElement).value = t.note ?? "";
+  (document.getElementById("m-template")     as HTMLInputElement).checked  = t.is_template ?? false;
   (document.getElementById("m-due")      as HTMLInputElement).value    = t.due_date ?? "";
   setChoice("context",  t.context);
   setChoice("category", t.category);
@@ -821,15 +860,16 @@ async function openUseTemplateModal(preselectedId?: string) {
     select.appendChild(opt);
   }
   if (preselectedId) select.value = preselectedId;
-  fillTemplateFields(select.value);
 
   const card = document.getElementById("modal-card")!;
   card.dataset.mode = "spawn";
   document.getElementById("modal-title")!.textContent = "Use template today";
   document.getElementById("modal-mode-tag")!.textContent = "USE";
   document.getElementById("modal-save")!.textContent = "Add to My Day";
-  (document.getElementById("m-note") as HTMLTextAreaElement).value = "";
-  (document.getElementById("m-due")  as HTMLInputElement).value    = isoDate(new Date());
+  (document.getElementById("m-instructions") as HTMLTextAreaElement).value = "";
+  (document.getElementById("m-note")         as HTMLTextAreaElement).value = "";
+  (document.getElementById("m-due")          as HTMLInputElement).value    = isoDate(new Date());
+  fillTemplateFields(select.value);
   document.getElementById("modal-scrim")!.classList.remove("hidden");
   setTimeout(() => (document.getElementById("m-title") as HTMLInputElement).focus(), 50);
 }
@@ -838,7 +878,8 @@ function fillTemplateFields(templateId: string) {
   const t = templateList.find(t => t.id === templateId);
   if (!t) return;
   selectedTemplateId = t.id;
-  (document.getElementById("m-title") as HTMLInputElement).value = t.title;
+  (document.getElementById("m-title")        as HTMLInputElement).value    = t.title;
+  (document.getElementById("m-instructions") as HTMLTextAreaElement).value = t.instructions ?? "";
   setChoice("context", t.context);
 }
 
@@ -854,14 +895,15 @@ async function saveModal() {
   if (mode === "create") {
     const title = (document.getElementById("m-title") as HTMLInputElement).value.trim();
     if (!title) { (document.getElementById("m-title") as HTMLInputElement).focus(); return; }
-    const context     = getChoice("context")  as Context;
-    const category    = getChoice("category") as Category;
-    const is_template = (document.getElementById("m-template") as HTMLInputElement).checked;
-    const due         = (document.getElementById("m-due")      as HTMLInputElement).value;
-    const note        = (document.getElementById("m-note")     as HTMLTextAreaElement).value.trim();
+    const context      = getChoice("context")  as Context;
+    const category     = getChoice("category") as Category;
+    const is_template  = (document.getElementById("m-template")     as HTMLInputElement).checked;
+    const due          = (document.getElementById("m-due")           as HTMLInputElement).value;
+    const instructions = (document.getElementById("m-instructions")  as HTMLTextAreaElement).value.trim();
+    const note         = (document.getElementById("m-note")          as HTMLTextAreaElement).value.trim();
     try {
       await invoke("create_task", {
-        input: { title, context, category, is_template, due_date: due || null, note: note || null },
+        input: { title, context, category, is_template, due_date: due || null, instructions: instructions || null, note: note || null },
       });
       if (category === "daily") await invoke("ensure_today_instances");
       closeModal();
@@ -872,17 +914,18 @@ async function saveModal() {
 
   } else if (mode === "edit") {
     if (!editingTask) return;
-    const title     = (document.getElementById("m-title") as HTMLInputElement).value.trim();
+    const title        = (document.getElementById("m-title") as HTMLInputElement).value.trim();
     if (!title) { (document.getElementById("m-title") as HTMLInputElement).focus(); return; }
-    const context    = getChoice("context")   as Context;
-    const category   = getChoice("category")  as Category;
-    const newStatus  = getChoice("status")    as Status;
-    const isTemplate = (document.getElementById("m-template") as HTMLInputElement).checked;
-    const due        = (document.getElementById("m-due")  as HTMLInputElement).value;
-    const note       = (document.getElementById("m-note") as HTMLTextAreaElement).value.trim();
+    const context      = getChoice("context")   as Context;
+    const category     = getChoice("category")  as Category;
+    const newStatus    = getChoice("status")    as Status;
+    const isTemplate   = (document.getElementById("m-template")     as HTMLInputElement).checked;
+    const due          = (document.getElementById("m-due")           as HTMLInputElement).value;
+    const instructions = (document.getElementById("m-instructions")  as HTMLTextAreaElement).value.trim();
+    const note         = (document.getElementById("m-note")          as HTMLTextAreaElement).value.trim();
     try {
       await invoke("update_task", {
-        input: { id: editingTask.id, title, context, category, is_template: isTemplate, due_date: due || null, note: note || null },
+        input: { id: editingTask.id, title, context, category, is_template: isTemplate, due_date: due || null, instructions: instructions || null, note: note || null },
       });
       if (newStatus !== editingTask.status) {
         await invoke(newStatus === "archived" ? "archive_task" : "unarchive_task", { id: editingTask.id });
@@ -901,10 +944,11 @@ async function saveModal() {
     if (!selectedTemplateId) return;
     const tmpl = templateList.find(t => t.id === selectedTemplateId);
     if (!tmpl) return;
-    const title   = (document.getElementById("m-title") as HTMLInputElement).value.trim() || tmpl.title;
-    const context = getChoice("context") as Context;
-    const due     = (document.getElementById("m-due")  as HTMLInputElement).value || isoDate(new Date());
-    const note    = (document.getElementById("m-note") as HTMLTextAreaElement).value.trim();
+    const title        = (document.getElementById("m-title")        as HTMLInputElement).value.trim() || tmpl.title;
+    const context      = getChoice("context") as Context;
+    const due          = (document.getElementById("m-due")          as HTMLInputElement).value || isoDate(new Date());
+    const instructions = (document.getElementById("m-instructions") as HTMLTextAreaElement).value.trim();
+    const note         = (document.getElementById("m-note")         as HTMLTextAreaElement).value.trim();
     try {
       await invoke("create_task", {
         input: {
@@ -913,6 +957,7 @@ async function saveModal() {
           category: "normal" as Category,
           is_template: false,
           due_date: due,
+          instructions: instructions || null,
           note: note || null,
         },
       });

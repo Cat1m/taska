@@ -12,7 +12,7 @@ fn now_iso() -> String {
 pub(super) async fn list_today(pool: &SqlitePool, today: &str) -> AppResult<Vec<TodayDaily>> {
     let rows = sqlx::query_as::<_, TodayDaily>(
         "SELECT di.id, di.task_id, t.title, t.context, t.is_template,
-                t.note AS template_note,
+                t.note AS template_note, t.instructions,
                 di.date, di.is_done, di.note, di.created_at,
                 'daily' AS kind
          FROM daily_instances di
@@ -22,7 +22,7 @@ pub(super) async fn list_today(pool: &SqlitePool, today: &str) -> AppResult<Vec<
          UNION ALL
 
          SELECT t.id, t.id AS task_id, t.title, t.context, t.is_template,
-                t.note AS template_note,
+                t.note AS template_note, t.instructions,
                 ? AS date,
                 COALESCE(di.is_done, 0) AS is_done,
                 di.note AS note,
