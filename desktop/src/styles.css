@@ -590,6 +590,25 @@ kbd {
   white-space: pre-wrap;
   line-height: 1.45;
 }
+.instr-body {
+  max-height: 5em;
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+  word-break: break-word;
+}
+.instr-body.expanded { max-height: none; }
+.instr-body.md-content { white-space: normal; }
+.instr-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
+}
+.instr-toggle-btn:hover { text-decoration: underline; }
 
 /* Save status */
 .save-status {
@@ -1011,9 +1030,6 @@ select.modal-select:focus { border-color: var(--green); }
   font-size: 11px;
   color: var(--green);
   opacity: 0.85;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .task-note-preview {
   font-size: 11.5px;
@@ -1285,3 +1301,47 @@ select.modal-select:focus { border-color: var(--green); }
 .heat-legend-cell[data-lvl="2"] { background: var(--h2); }
 .heat-legend-cell[data-lvl="3"] { background: var(--h3); }
 .heat-legend-cell[data-lvl="4"] { background: var(--h4); }
+
+/* ===== DETAIL MODAL ===== */
+.detail-scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+}
+.detail-scrim.hidden { display: none; }
+.detail-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 560px; max-width: 92vw;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+}
+.detail-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid var(--line);
+  gap: 10px;
+}
+.detail-title-wrap { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+#detail-title { font-size: 15px; font-weight: 600; color: var(--fg-0); line-height: 1.3; word-break: break-word; }
+.detail-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.detail-body {
+  flex: 1; overflow-y: auto;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.detail-section { display: flex; flex-direction: column; gap: 6px; }
+.detail-section-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--green); opacity: 0.85;
+}
+.detail-instructions, .detail-note {
+  font-size: 12.5px; color: var(--fg-1); line-height: 1.5;
+}
+.detail-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  display: flex; gap: 8px; justify-content: flex-end;
+}

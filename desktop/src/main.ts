@@ -165,6 +165,18 @@ function hookExternalLinks(container: HTMLElement) {
   });
 }
 
+function makeCollapsible(bodyEl: HTMLElement, toggleBtn: HTMLButtonElement) {
+  requestAnimationFrame(() => {
+    if (bodyEl.scrollHeight > bodyEl.clientHeight) {
+      toggleBtn.style.display = "block";
+    }
+  });
+  toggleBtn.addEventListener("click", () => {
+    const expanded = bodyEl.classList.toggle("expanded");
+    toggleBtn.textContent = expanded ? "thu gọn" : "xem thêm";
+  });
+}
+
 // ─── Theme ────────────────────────────────────────────────
 
 const THEME_KEY = "taska-theme";
@@ -260,6 +272,8 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
   const titleEl = document.createElement("span");
   titleEl.className = `instance-title${inst.is_done ? " done" : ""}`;
   titleEl.textContent = inst.title;
+  titleEl.style.cursor = "pointer";
+  titleEl.addEventListener("click", () => openDetailFromInstance(inst));
   titleRow.appendChild(titleEl);
   titleRow.appendChild(badge(`ctx-${inst.context}`, inst.context));
   body.appendChild(titleRow);
@@ -271,11 +285,16 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
     instrLabel.className = "instructions-label";
     instrLabel.textContent = "Hướng dẫn";
     const instrText = document.createElement("p");
-    instrText.className = "instructions-text";
+    instrText.className = "instructions-text instr-body";
     instrText.textContent = inst.instructions;
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "instr-toggle-btn";
+    toggleBtn.textContent = "xem thêm";
     instrBlock.appendChild(instrLabel);
     instrBlock.appendChild(instrText);
+    instrBlock.appendChild(toggleBtn);
     body.appendChild(instrBlock);
+    makeCollapsible(instrText, toggleBtn);
   }
 
   const noteArea = document.createElement("textarea");
@@ -467,9 +486,14 @@ function buildTaskRow(t: Task): HTMLElement {
   main.appendChild(titleEl);
   if (t.instructions) {
     const instrPreview = document.createElement("span");
-    instrPreview.className = "task-instructions-preview";
-    instrPreview.textContent = "▸ " + t.instructions.slice(0, 80);
+    instrPreview.className = "task-instructions-preview instr-body";
+    instrPreview.textContent = t.instructions;
+    const instrToggle = document.createElement("button");
+    instrToggle.className = "instr-toggle-btn";
+    instrToggle.textContent = "xem thêm";
     main.appendChild(instrPreview);
+    main.appendChild(instrToggle);
+    makeCollapsible(instrPreview, instrToggle);
   }
   if (t.note) {
     const preview = document.createElement("span");
@@ -499,10 +523,10 @@ function buildTaskRow(t: Task): HTMLElement {
   dueCell.appendChild(dueEl);
   row.appendChild(dueCell);
 
-  // Row click → edit modal (ignore checkbox clicks)
+  // Row click → detail modal (ignore checkbox clicks)
   row.addEventListener("click", e => {
     if ((e.target as HTMLElement).closest(".chk-wrap")) return;
-    openEditModal(t);
+    openDetailModal(t);
   });
 
   return row;
@@ -553,6 +577,8 @@ function buildTemplateCard(t: Task): HTMLElement {
   const title = document.createElement("div");
   title.className = "template-card-title";
   title.textContent = t.title;
+  title.style.cursor = "pointer";
+  title.addEventListener("click", () => openDetailModal(t));
   card.appendChild(title);
 
   if (t.instructions) {
@@ -562,12 +588,17 @@ function buildTemplateCard(t: Task): HTMLElement {
     instrLabel.className = "instructions-label";
     instrLabel.textContent = "Hướng dẫn";
     const instrContent = document.createElement("div");
-    instrContent.className = "instructions-text md-content";
+    instrContent.className = "instructions-text instr-body md-content";
     instrContent.innerHTML = renderMarkdown(t.instructions);
     hookExternalLinks(instrContent);
+    const instrToggle = document.createElement("button");
+    instrToggle.className = "instr-toggle-btn";
+    instrToggle.textContent = "xem thêm";
     instrBlock.appendChild(instrLabel);
     instrBlock.appendChild(instrContent);
+    instrBlock.appendChild(instrToggle);
     card.appendChild(instrBlock);
+    makeCollapsible(instrContent, instrToggle);
   }
 
   if (t.note) {
@@ -813,6 +844,63 @@ function openCreateModal(defaultCategory: Category = "normal") {
   document.getElementById("modal-scrim")!.classList.remove("hidden");
   const noteEl = document.getElementById("m-note") as HTMLTextAreaElement;
   setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl); }, 50);
+}
+
+let detailTask: Task | null = null;
+
+function openDetailModal(t: Task) {
+  detailTask = t;
+  document.getElementById("detail-title")!.textContent = t.title;
+
+  const badges = document.getElementById("detail-badges")!;
+  badges.innerHTML = "";
+  badges.appendChild(badge(`ctx-${t.context}`, t.context));
+  badges.appendChild(badge(`cat-${t.category}`, t.category));
+  if (t.due_date) badges.appendChild(badge("b-template", `due: ${t.due_date}`));
+  if (t.status === "archived") badges.appendChild(badge("b-archived", "archived"));
+
+  const instrSection = document.getElementById("detail-instructions-section")!;
+  const instrEl = document.getElementById("detail-instructions")!;
+  if (t.instructions) {
+    instrEl.innerHTML = renderMarkdown(t.instructions);
+    hookExternalLinks(instrEl);
+    instrSection.classList.remove("hidden");
+  } else {
+    instrSection.classList.add("hidden");
+  }
+
+  const noteSection = document.getElementById("detail-note-section")!;
+  const noteEl = document.getElementById("detail-note")!;
+  if (t.note) {
+    noteEl.innerHTML = renderMarkdown(t.note);
+    hookExternalLinks(noteEl);
+    noteSection.classList.remove("hidden");
+  } else {
+    noteSection.classList.add("hidden");
+  }
+
+  document.getElementById("detail-scrim")!.classList.remove("hidden");
+}
+
+function closeDetailModal() {
+  document.getElementById("detail-scrim")!.classList.add("hidden");
+  detailTask = null;
+}
+
+function openDetailFromInstance(inst: TodayDaily) {
+  openDetailModal({
+    id: inst.task_id,
+    title: inst.title,
+    context: inst.context,
+    category: inst.kind,
+    is_template: inst.is_template,
+    status: "active",
+    due_date: null,
+    note: inst.template_note,
+    instructions: inst.instructions,
+    created_at: "",
+    updated_at: "",
+  });
 }
 
 function openEditModal(t: Task) {
@@ -1071,6 +1159,16 @@ window.addEventListener("DOMContentLoaded", async () => {
     fillTemplateFields((e.target as HTMLSelectElement).value);
   });
 
+  // ── Detail modal ──
+  document.getElementById("detail-close")!.addEventListener("click", closeDetailModal);
+  document.getElementById("detail-cancel-btn")!.addEventListener("click", closeDetailModal);
+  document.getElementById("detail-edit-btn")!.addEventListener("click", () => {
+    if (detailTask) { closeDetailModal(); openEditModal(detailTask); }
+  });
+  document.getElementById("detail-scrim")!.addEventListener("click", e => {
+    if (e.target === e.currentTarget) closeDetailModal();
+  });
+
   // ── Reset banner ──
   document.getElementById("dismiss-reset")!.addEventListener("click", () => {
     document.getElementById("reset-banner")!.classList.add("hidden");
@@ -1087,6 +1185,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const inInput = tag === "input" || tag === "textarea" || tag === "select";
 
     if (e.key === "Escape") {
+      if (!document.getElementById("detail-scrim")!.classList.contains("hidden")) { closeDetailModal(); return; }
       if (!document.getElementById("modal-scrim")!.classList.contains("hidden")) closeModal();
       return;
     }
