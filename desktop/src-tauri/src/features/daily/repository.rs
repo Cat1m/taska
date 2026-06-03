@@ -33,6 +33,7 @@ pub(super) async fn list_today(pool: &SqlitePool, today: &str) -> AppResult<Vec<
          WHERE t.category = 'normal'
            AND t.status = 'active'
            AND t.due_date = ?
+           AND di.id IS NULL
 
          ORDER BY context, title",
     )
@@ -97,18 +98,39 @@ pub(super) async fn toggle_normal_today(
     Ok(())
 }
 
+pub(super) async fn set_note_for_normal_task(
+    pool: &SqlitePool,
+    task_id: &str,
+    date: &str,
+    note: Option<String>,
+) -> AppResult<()> {
+    let note = note.and_then(|s| if s.trim().is_empty() { None } else { Some(s) });
+    let id = Uuid::new_v4().to_string();
+    let now = now_iso();
+    sqlx::query(
+        "INSERT INTO daily_instances (id, task_id, date, is_done, note, created_at)
+         VALUES (?, ?, ?, 0, ?, ?)
+         ON CONFLICT(task_id, date) DO UPDATE SET note = excluded.note",
+    )
+    .bind(&id)
+    .bind(task_id)
+    .bind(date)
+    .bind(note.as_deref())
+    .bind(&now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 pub(super) async fn remove_from_today(
     pool: &SqlitePool,
     task_id: &str,
     date: &str,
-    kind: &str,
 ) -> AppResult<()> {
-    if kind == "normal" {
-        sqlx::query("UPDATE tasks SET due_date = NULL WHERE id = ?")
-            .bind(task_id)
-            .execute(pool)
-            .await?;
-    }
+    sqlx::query("UPDATE tasks SET due_date = NULL WHERE id = ?")
+        .bind(task_id)
+        .execute(pool)
+        .await?;
     sqlx::query("DELETE FROM daily_instances WHERE task_id = ? AND date = ?")
         .bind(task_id)
         .bind(date)

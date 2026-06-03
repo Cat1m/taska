@@ -287,6 +287,12 @@ body {
 }
 
 .view-head-title { flex: 1; min-width: 0; }
+.myday-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .view-head h1 {
   display: inline-block;
@@ -313,7 +319,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-top: 6px;
+  margin-top: 0;
   background: var(--glass-light);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
@@ -402,14 +408,14 @@ body {
   border-color: var(--border);
 }
 
-#from-template-btn {
+#from-template-btn, #sim-reset {
   background: var(--glass-light);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
   border-color: var(--border-2);
   color: var(--fg-1);
 }
-#from-template-btn:hover {
+#from-template-btn:hover, #sim-reset:hover {
   background: var(--glass-hover);
   color: var(--fg-0);
   border-color: var(--border-2);
@@ -1443,27 +1449,27 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 
 /* ===== BACKGROUND PICKER ===== */
 .bg-btn {
+  width: 100%;
   font-family: inherit;
-  font-size: 13px;
-  background: none;
+  font-size: 11px;
+  background: var(--glass-light);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
   border: 1px solid var(--border-2);
   border-radius: var(--radius);
-  color: var(--fg-2);
-  padding: 2px 8px;
+  color: var(--fg-1);
+  padding: 5px 10px;
   cursor: pointer;
-  line-height: 1.4;
-  transition: color 0.1s, border-color 0.1s, background 0.1s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  text-align: left;
+  transition: background 0.12s, color 0.1s, border-color 0.1s;
 }
-.bg-btn:hover { color: var(--fg-0); border-color: var(--border-2); background: var(--glass-light); }
-.bg-btn.open  { color: var(--accent); border-color: var(--accent-dim); }
+.bg-btn:hover { background: var(--glass-hover); color: var(--fg-0); border-color: var(--border-2); }
+.bg-btn.open  { color: var(--accent); border-color: var(--accent-dim); background: var(--glass-light); }
 
 .bg-panel {
   position: fixed;
-  top: 38px;
-  right: 12px;
+  bottom: 50px;
+  left: 8px;
   width: 280px;
   background: var(--glass-heavy);
   backdrop-filter: var(--blur-lg);

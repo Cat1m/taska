@@ -14,7 +14,6 @@
     <div class="titlebar" data-tauri-drag-region>
       <span class="titlebar-brand" data-tauri-drag-region>Taska · tauri 2.x</span>
       <div class="titlebar-right">
-        <button id="bg-btn" class="bg-btn" title="Background">⬛ bg</button>
         <span class="win-dots">
           <span class="dot dot-min"   id="win-min"   title="Minimize"></span>
           <span class="dot dot-max"   id="win-max"   title="Maximize"></span>
@@ -69,7 +68,7 @@
           </li>
         </ul>
         <div class="sidebar-foot">
-          <button id="sim-reset" class="dev-btn">↻ Simulate daily-reset</button>
+          <button id="bg-btn" class="bg-btn">⬛ edit background</button>
         </div>
       </nav>
 
@@ -79,11 +78,14 @@
         <section data-view="myday" class="view active">
           <div class="view-head">
             <div class="view-head-title">
-              <h1>My Day</h1>
-              <div class="myday-date-nav">
-                <button id="myday-prev-btn" class="btn ghost icon-btn" title="Yesterday">‹</button>
-                <p id="today-date-sub" class="view-sub"></p>
-                <button id="myday-next-btn" class="btn ghost icon-btn" title="Back to today" style="display:none">›</button>
+              <div class="myday-title-row">
+                <h1>My Day</h1>
+                <div class="myday-date-nav">
+                  <button id="myday-prev-btn" class="btn ghost icon-btn" title="Yesterday">‹</button>
+                  <p id="today-date-sub" class="view-sub"></p>
+                  <button id="myday-next-btn" class="btn ghost icon-btn" title="Back to today" style="display:none">›</button>
+                </div>
+                <button id="sim-reset" class="btn ghost">↻ Reset</button>
               </div>
             </div>
             <span id="autosave-hint" class="autosave-hint"></span>

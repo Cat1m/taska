@@ -50,6 +50,7 @@ pub fn run() {
             features::tasks::archive_task,
             features::tasks::unarchive_task,
             features::daily::remove_from_today,
+            features::daily::set_normal_task_note,
             features::daily::ensure_today_instances,
             features::daily::list_daily_for_date,
             features::daily::list_today_daily,

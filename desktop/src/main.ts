@@ -286,7 +286,11 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
   saveStatus.className = "save-status";
   noteArea.addEventListener("input", () => {
     autoResize(noteArea);
-    scheduleNoteSave(inst.id, noteArea.value, saveStatus);
+    if (inst.kind === "normal") {
+      scheduleNoteSaveForNormal(inst.task_id, currentMyDayDate, noteArea.value, saveStatus);
+    } else {
+      scheduleNoteSave(inst.id, noteArea.value, saveStatus);
+    }
   });
   body.appendChild(noteArea);
   body.appendChild(saveStatus);
@@ -302,7 +306,7 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
       : `Remove "${inst.title}" from today? (Task still exists in your task list.)`;
     if (!window.confirm(msg)) return;
     try {
-      await invoke("remove_from_today", { taskId: inst.task_id, date: currentMyDayDate, kind: inst.kind });
+      await invoke("remove_from_today", { taskId: inst.task_id, date: currentMyDayDate });
       document.getElementById(`row-${inst.id}`)?.remove();
       await updateNavCounts();
     } catch (e) { console.error("remove_from_today:", e); }
@@ -395,6 +399,43 @@ function scheduleNoteSave(id: string, note: string, statusEl: HTMLSpanElement) {
     }
   }, 500);
   noteTimers.set(id, timer);
+}
+
+function scheduleNoteSaveForNormal(taskId: string, date: string, note: string, statusEl: HTMLSpanElement) {
+  const key = `normal:${taskId}:${date}`;
+  const existing = noteTimers.get(key);
+  if (existing) clearTimeout(existing);
+
+  statusEl.textContent = "saving…";
+  statusEl.className = "save-status saving";
+  const hint = document.getElementById("autosave-hint")!;
+  hint.textContent = "saving…";
+  hint.className = "autosave-hint saving";
+
+  const timer = setTimeout(async () => {
+    noteTimers.delete(key);
+    try {
+      const trimmed = note.trim();
+      await invoke("set_normal_task_note", { taskId, date, note: trimmed || null });
+      const inst = myDayInstances.find(i => i.task_id === taskId && i.kind === "normal");
+      if (inst) inst.note = trimmed || null;
+      statusEl.textContent = "✓ saved";
+      statusEl.className = "save-status saved";
+      hint.textContent = "✓ saved";
+      hint.className = "autosave-hint saved";
+      setTimeout(() => {
+        if (statusEl.textContent === "✓ saved") { statusEl.textContent = ""; statusEl.className = "save-status"; }
+        if (hint.textContent === "✓ saved") { hint.textContent = ""; hint.className = "autosave-hint"; }
+      }, 1400);
+    } catch (e) {
+      statusEl.textContent = "⚠ error";
+      statusEl.className = "save-status";
+      hint.textContent = "⚠ save failed";
+      hint.className = "autosave-hint";
+      console.error("set_normal_task_note:", e);
+    }
+  }, 500);
+  noteTimers.set(key, timer);
 }
 
 // ─── Tasks view ───────────────────────────────────────────
