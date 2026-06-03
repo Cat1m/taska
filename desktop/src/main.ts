@@ -1084,14 +1084,14 @@ function applyAdaptiveColors(dark: boolean) {
     r.style.setProperty("--accent",      "rgba(255, 255, 255, 0.88)");
     r.style.setProperty("--accent-dim",  "rgba(255, 255, 255, 0.14)");
     r.style.setProperty("--accent-glow", "0 0 14px 2px rgba(255, 255, 255, 0.11)");
-    r.style.setProperty("--fg-0",        "rgba(226, 229, 234, 0.95)");
-    r.style.setProperty("--fg-1",        "rgba(170, 176, 186, 0.85)");
-    r.style.setProperty("--fg-2",        "rgba(111, 118, 129, 0.75)");
-    r.style.setProperty("--fg-3",        "rgba(74,  80,  90,  0.55)");
-    r.style.setProperty("--glass-heavy", "rgba(10,  12,  15,  0.90)");
-    r.style.setProperty("--glass-mid",   "rgba(16,  19,  24,  0.75)");
-    r.style.setProperty("--glass-light", "rgba(22,  26,  32,  0.55)");
-    r.style.setProperty("--glass-hover", "rgba(30,  35,  42,  0.60)");
+    r.style.setProperty("--fg-0",        "rgba(255, 255, 255, 0.96)");
+    r.style.setProperty("--fg-1",        "rgba(220, 225, 232, 0.92)");
+    r.style.setProperty("--fg-2",        "rgba(172, 180, 192, 0.88)");
+    r.style.setProperty("--fg-3",        "rgba(122, 130, 142, 0.72)");
+    r.style.setProperty("--glass-heavy", "rgba(12,  15,  20,  0.76)");
+    r.style.setProperty("--glass-mid",   "rgba(18,  22,  30,  0.62)");
+    r.style.setProperty("--glass-light", "rgba(25,  30,  42,  0.44)");
+    r.style.setProperty("--glass-hover", "rgba(32,  38,  52,  0.52)");
     r.style.setProperty("--border",      "rgba(255, 255, 255, 0.07)");
     r.style.setProperty("--border-2",    "rgba(255, 255, 255, 0.13)");
   } else {
