@@ -1397,42 +1397,8 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 .heat-legend-cell[data-lvl="3"] { background: var(--h3); }
 .heat-legend-cell[data-lvl="4"] { background: var(--h4); }
 
-/* ===== DETAIL MODAL ===== */
-.detail-scrim {
-  position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200;
-}
-.detail-scrim.hidden { display: none; }
-.detail-card {
-  background: var(--glass-heavy);
-  backdrop-filter: var(--blur-lg);
-  -webkit-backdrop-filter: var(--blur-lg);
-  border: 1px solid var(--border-2);
-  border-top-color: rgba(255, 255, 255, 0.22);
-  border-radius: var(--radius-lg);
-  width: clamp(520px, 60vw, 900px);
-  max-height: 80vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04);
-}
-.detail-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 16px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  gap: 10px;
-}
-.detail-title-wrap { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-#detail-title { font-size: 15px; font-weight: 600; color: var(--fg-0); line-height: 1.3; word-break: break-word; }
+/* ===== DETAIL SHARED COMPONENTS ===== */
 .detail-badges { display: flex; flex-wrap: wrap; gap: 4px; }
-.detail-body {
-  flex: 1; overflow-y: auto;
-  padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 14px;
-}
 .detail-section { display: flex; flex-direction: column; gap: 6px; }
 .detail-section-label {
   font-size: 10px; font-weight: 600; text-transform: uppercase;
@@ -1441,10 +1407,102 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 .detail-instructions, .detail-note {
   font-size: 12.5px; color: var(--fg-1); line-height: 1.5;
 }
-.detail-footer {
-  padding: 10px 16px;
+
+/* ===== UTILITY ===== */
+.hidden { display: none !important; }
+
+/* ===== SIDEBAR LIST PANE (detail mode) ===== */
+.sidebar-list-pane {
+  display: none;
+  flex-direction: column;
   border-top: 1px solid var(--border);
-  display: flex; gap: 8px; justify-content: flex-end;
+  min-height: 0;
+  overflow: hidden;
+}
+.sidebar.detail-active .sidebar-list-pane {
+  display: flex;
+  flex: 1;
+}
+.sidebar.detail-active .nav-list {
+  flex: 0 0 auto;
+}
+.sidebar-list-header {
+  padding: 8px 14px 3px;
+  flex-shrink: 0;
+}
+.sidebar-list-title {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
+}
+.sidebar-list-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px 6px 8px;
+  min-height: 0;
+}
+.sidebar-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.12s;
+}
+.sidebar-list-item:hover { background: var(--glass-light); }
+.sidebar-list-item.active {
+  background: var(--glass-light);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.sidebar-list-item-title {
+  font-size: 11.5px;
+  color: var(--fg-1);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.sidebar-list-item.active .sidebar-list-item-title { color: var(--fg-0); }
+
+/* ===== DETAIL VIEW (full main area) ===== */
+.detail-view-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+}
+.detail-view-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-view-title-text {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg-0);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.detail-view-body .detail-section-label { font-size: 11px; }
+.detail-view-body .detail-instructions,
+.detail-view-body .detail-note {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.detail-view-empty {
+  color: var(--fg-3);
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
 }
 
 /* ===== BACKGROUND PICKER ===== */

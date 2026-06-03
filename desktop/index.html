@@ -67,6 +67,15 @@
             <span class="nav-pill" id="cnt-daily"></span>
           </li>
         </ul>
+
+        <!-- Mini list — visible only when detail view is active -->
+        <div id="sidebar-list-pane" class="sidebar-list-pane">
+          <div class="sidebar-list-header">
+            <span id="sidebar-list-title" class="sidebar-list-title"></span>
+          </div>
+          <div id="sidebar-list-items" class="sidebar-list-items"></div>
+        </div>
+
         <div class="sidebar-foot">
           <button id="bg-btn" class="bg-btn">⬛ edit background</button>
         </div>
@@ -176,6 +185,34 @@
           </div>
         </section>
 
+        <!-- ── Detail view ────────────────────────────────── -->
+        <section data-view="detail" class="view">
+          <div class="view-head">
+            <button id="detail-back-btn" class="btn ghost">‹ back</button>
+            <div class="view-head-title" style="flex:0 0 auto"></div>
+            <button id="detail-view-edit-btn" class="btn primary">Edit</button>
+          </div>
+          <div class="panel">
+            <div class="detail-view-body">
+              <div class="detail-view-header">
+                <div id="detail-view-title" class="detail-view-title-text"></div>
+                <div id="detail-view-badges" class="detail-badges"></div>
+              </div>
+              <div id="detail-view-instructions-section" class="detail-section hidden">
+                <div class="detail-section-label">Hướng dẫn</div>
+                <div id="detail-view-instructions" class="detail-instructions md-content"></div>
+              </div>
+              <div id="detail-view-note-section" class="detail-section hidden">
+                <div class="detail-section-label">Note</div>
+                <div id="detail-view-note" class="detail-note md-content"></div>
+              </div>
+              <div id="detail-view-empty" class="detail-view-empty hidden">
+                <span>Không có thêm thông tin cho task này.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
     </div>
 
@@ -248,33 +285,6 @@
         <div class="modal-foot">
           <button id="modal-cancel" class="btn ghost">Cancel <kbd>Esc</kbd></button>
           <button id="modal-save"   class="btn primary">Save</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Detail modal ──────────────────────────────────── -->
-    <div id="detail-scrim" class="detail-scrim hidden">
-      <div id="detail-card" class="detail-card">
-        <div class="detail-head">
-          <div class="detail-title-wrap">
-            <span id="detail-title"></span>
-            <div id="detail-badges" class="detail-badges"></div>
-          </div>
-          <button id="detail-close" class="modal-close-btn">×</button>
-        </div>
-        <div id="detail-body" class="detail-body">
-          <div id="detail-instructions-section" class="detail-section hidden">
-            <div class="detail-section-label">Hướng dẫn</div>
-            <div id="detail-instructions" class="detail-instructions md-content"></div>
-          </div>
-          <div id="detail-note-section" class="detail-section hidden">
-            <div class="detail-section-label">Note</div>
-            <div id="detail-note" class="detail-note md-content"></div>
-          </div>
-        </div>
-        <div class="detail-footer">
-          <button id="detail-edit-btn" class="btn primary">Edit</button>
-          <button id="detail-cancel-btn" class="btn ghost">Đóng</button>
         </div>
       </div>
     </div>

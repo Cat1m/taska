@@ -9,7 +9,7 @@ import { renderMarkdown } from "./markdown";
 type Context  = "personal" | "work";
 type Category = "daily" | "normal";
 type Status   = "active" | "archived";
-type ViewName = "myday" | "tasks" | "templates" | "daily";
+type ViewName = "myday" | "tasks" | "templates" | "daily" | "detail";
 
 interface Task {
   id: string;
@@ -66,6 +66,9 @@ let tasksList: Task[] = [];
 let editingTask: Task | null = null;
 let templateList: Task[] = [];
 let selectedTemplateId: string | null = null;
+
+let detailTask: Task | null = null;
+let previousView: ViewName = "myday";
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -180,10 +183,16 @@ function makeCollapsible(bodyEl: HTMLElement, toggleBtn: HTMLButtonElement) {
 // ─── View navigation ──────────────────────────────────────
 
 function setView(v: ViewName) {
+  if (v !== "detail" && currentView === "detail") {
+    document.querySelector<HTMLElement>(".sidebar")!.classList.remove("detail-active");
+    detailTask = null;
+  }
   currentView = v;
-  document.querySelectorAll<HTMLElement>(".nav-item").forEach(el => {
-    el.classList.toggle("active", el.dataset.goto === v);
-  });
+  if (v !== "detail") {
+    document.querySelectorAll<HTMLElement>(".nav-item").forEach(el => {
+      el.classList.toggle("active", el.dataset.goto === v);
+    });
+  }
   document.querySelectorAll<HTMLElement>(".view").forEach(el => {
     el.classList.toggle("active", el.dataset.view === v);
   });
@@ -253,7 +262,7 @@ function buildInstanceRow(inst: TodayDaily): HTMLElement {
   titleEl.className = `instance-title${inst.is_done ? " done" : ""}`;
   titleEl.textContent = inst.title;
   titleEl.style.cursor = "pointer";
-  titleEl.addEventListener("click", () => openDetailFromInstance(inst));
+  titleEl.addEventListener("click", () => openDetailViewFromInstance(inst));
   titleRow.appendChild(titleEl);
   titleRow.appendChild(badge(`ctx-${inst.context}`, inst.context));
   body.appendChild(titleRow);
@@ -544,10 +553,10 @@ function buildTaskRow(t: Task): HTMLElement {
   dueCell.appendChild(dueEl);
   row.appendChild(dueCell);
 
-  // Row click → detail modal (ignore checkbox clicks)
+  // Row click → detail view (ignore checkbox clicks)
   row.addEventListener("click", e => {
     if ((e.target as HTMLElement).closest(".chk-wrap")) return;
-    openDetailModal(t);
+    openDetailView(t);
   });
 
   return row;
@@ -599,7 +608,7 @@ function buildTemplateCard(t: Task): HTMLElement {
   title.className = "template-card-title";
   title.textContent = t.title;
   title.style.cursor = "pointer";
-  title.addEventListener("click", () => openDetailModal(t));
+  title.addEventListener("click", () => openDetailView(t));
   card.appendChild(title);
 
   if (t.instructions) {
@@ -867,21 +876,25 @@ function openCreateModal(defaultCategory: Category = "normal") {
   setTimeout(() => { (document.getElementById("m-title") as HTMLInputElement).focus(); autoResize(noteEl); }, 50);
 }
 
-let detailTask: Task | null = null;
+// ─── Detail View ─────────────────────────────────────────
 
-function openDetailModal(t: Task) {
+function openDetailView(t: Task) {
+  const enteringFromList = currentView !== "detail";
+  if (enteringFromList) previousView = currentView;
+
   detailTask = t;
-  document.getElementById("detail-title")!.textContent = t.title;
 
-  const badges = document.getElementById("detail-badges")!;
+  document.getElementById("detail-view-title")!.textContent = t.title;
+
+  const badges = document.getElementById("detail-view-badges")!;
   badges.innerHTML = "";
   badges.appendChild(badge(`ctx-${t.context}`, t.context));
   badges.appendChild(badge(`cat-${t.category}`, t.category));
   if (t.due_date) badges.appendChild(badge("b-template", `due: ${t.due_date}`));
   if (t.status === "archived") badges.appendChild(badge("b-archived", "archived"));
 
-  const instrSection = document.getElementById("detail-instructions-section")!;
-  const instrEl = document.getElementById("detail-instructions")!;
+  const instrSection = document.getElementById("detail-view-instructions-section")!;
+  const instrEl = document.getElementById("detail-view-instructions")!;
   if (t.instructions) {
     instrEl.innerHTML = renderMarkdown(t.instructions);
     hookExternalLinks(instrEl);
@@ -890,8 +903,8 @@ function openDetailModal(t: Task) {
     instrSection.classList.add("hidden");
   }
 
-  const noteSection = document.getElementById("detail-note-section")!;
-  const noteEl = document.getElementById("detail-note")!;
+  const noteSection = document.getElementById("detail-view-note-section")!;
+  const noteEl = document.getElementById("detail-view-note")!;
   if (t.note) {
     noteEl.innerHTML = renderMarkdown(t.note);
     hookExternalLinks(noteEl);
@@ -900,16 +913,22 @@ function openDetailModal(t: Task) {
     noteSection.classList.add("hidden");
   }
 
-  document.getElementById("detail-scrim")!.classList.remove("hidden");
+  const emptyEl = document.getElementById("detail-view-empty")!;
+  emptyEl.classList.toggle("hidden", !!(t.instructions || t.note));
+
+  if (enteringFromList) {
+    populateSidebarList();
+    document.querySelector<HTMLElement>(".sidebar")!.classList.add("detail-active");
+    setView("detail");
+  }
+
+  document.querySelectorAll<HTMLElement>(".sidebar-list-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.taskId === t.id);
+  });
 }
 
-function closeDetailModal() {
-  document.getElementById("detail-scrim")!.classList.add("hidden");
-  detailTask = null;
-}
-
-function openDetailFromInstance(inst: TodayDaily) {
-  openDetailModal({
+function openDetailViewFromInstance(inst: TodayDaily) {
+  openDetailView({
     id: inst.task_id,
     title: inst.title,
     context: inst.context,
@@ -922,6 +941,56 @@ function openDetailFromInstance(inst: TodayDaily) {
     created_at: "",
     updated_at: "",
   });
+}
+
+function closeDetailView() {
+  setView(previousView);
+}
+
+function populateSidebarList() {
+  const titleEl = document.getElementById("sidebar-list-title")!;
+  const itemsEl = document.getElementById("sidebar-list-items")!;
+  itemsEl.innerHTML = "";
+
+  if (previousView === "myday") {
+    titleEl.textContent = "My Day";
+    for (const inst of myDayInstances) {
+      itemsEl.appendChild(buildSidebarItem(inst.task_id, inst.title, inst.context, () =>
+        openDetailViewFromInstance(inst)
+      ));
+    }
+  } else if (previousView === "tasks") {
+    titleEl.textContent = "Tasks";
+    for (const t of tasksList) {
+      itemsEl.appendChild(buildSidebarItem(t.id, t.title, t.context, () => openDetailView(t)));
+    }
+  } else if (previousView === "templates") {
+    titleEl.textContent = "Templates";
+    for (const t of tasksList.filter(t => t.is_template)) {
+      itemsEl.appendChild(buildSidebarItem(t.id, t.title, t.context, () => openDetailView(t)));
+    }
+  } else {
+    titleEl.textContent = "";
+  }
+}
+
+function buildSidebarItem(id: string, title: string, context: Context, onClick: () => void): HTMLElement {
+  const item = document.createElement("div");
+  item.className = "sidebar-list-item";
+  item.dataset.taskId = id;
+  const dot = document.createElement("span");
+  dot.className = `ctx-dot ${context}`;
+  const titleEl = document.createElement("span");
+  titleEl.className = "sidebar-list-item-title";
+  titleEl.textContent = title;
+  item.appendChild(dot);
+  item.appendChild(titleEl);
+  item.addEventListener("click", () => {
+    document.querySelectorAll<HTMLElement>(".sidebar-list-item").forEach(el => el.classList.remove("active"));
+    item.classList.add("active");
+    onClick();
+  });
+  return item;
 }
 
 function openEditModal(t: Task) {
@@ -1334,14 +1403,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     fillTemplateFields((e.target as HTMLSelectElement).value);
   });
 
-  // ── Detail modal ──
-  document.getElementById("detail-close")!.addEventListener("click", closeDetailModal);
-  document.getElementById("detail-cancel-btn")!.addEventListener("click", closeDetailModal);
-  document.getElementById("detail-edit-btn")!.addEventListener("click", () => {
-    if (detailTask) { closeDetailModal(); openEditModal(detailTask); }
-  });
-  document.getElementById("detail-scrim")!.addEventListener("click", e => {
-    if (e.target === e.currentTarget) closeDetailModal();
+  // ── Detail view ──
+  document.getElementById("detail-back-btn")!.addEventListener("click", closeDetailView);
+  document.getElementById("detail-view-edit-btn")!.addEventListener("click", () => {
+    if (detailTask) { closeDetailView(); openEditModal(detailTask); }
   });
 
   // ── Reset banner ──
@@ -1360,7 +1425,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     const inInput = tag === "input" || tag === "textarea" || tag === "select";
 
     if (e.key === "Escape") {
-      if (!document.getElementById("detail-scrim")!.classList.contains("hidden")) { closeDetailModal(); return; }
+      if (currentView === "detail") { closeDetailView(); return; }
       if (!document.getElementById("modal-scrim")!.classList.contains("hidden")) closeModal();
       return;
     }
