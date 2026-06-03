@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { renderMarkdown } from "./markdown";
+import { applyGlassTheme, extractDominantFromDataUri } from "./theme/glassTheme";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -890,7 +891,7 @@ function openDetailView(t: Task) {
   badges.innerHTML = "";
   badges.appendChild(badge(`ctx-${t.context}`, t.context));
   badges.appendChild(badge(`cat-${t.category}`, t.category));
-  if (t.due_date) badges.appendChild(badge("b-template", `due: ${t.due_date}`));
+  if (t.due_date) badges.appendChild(badge("b-due", `due: ${t.due_date}`));
   if (t.status === "archived") badges.appendChild(badge("b-archived", "archived"));
 
   const instrSection = document.getElementById("detail-view-instructions-section")!;
@@ -1179,53 +1180,32 @@ function extractFirstHex(css: string): string | null {
   return m ? m[0] : null;
 }
 
-function isBgDark(bgValue: string): boolean {
-  if (bgValue.startsWith("data:image") || bgValue.startsWith("url(")) return true;
-  const hex = extractFirstHex(bgValue);
-  if (!hex) return true;
-  const rgb = hexToRgb(hex);
-  if (!rgb) return true;
-  return relativeLuminance(...rgb) < 0.35;
-}
 
-function applyAdaptiveColors(dark: boolean) {
-  const r = document.documentElement;
-  if (dark) {
-    r.style.setProperty("--accent",      "rgba(255, 255, 255, 0.88)");
-    r.style.setProperty("--accent-dim",  "rgba(255, 255, 255, 0.14)");
-    r.style.setProperty("--accent-glow", "0 0 14px 2px rgba(255, 255, 255, 0.11)");
-    r.style.setProperty("--fg-0",        "rgba(255, 255, 255, 0.96)");
-    r.style.setProperty("--fg-1",        "rgba(220, 225, 232, 0.92)");
-    r.style.setProperty("--fg-2",        "rgba(172, 180, 192, 0.88)");
-    r.style.setProperty("--fg-3",        "rgba(122, 130, 142, 0.72)");
-    r.style.setProperty("--glass-heavy", "rgba(12,  15,  20,  0.76)");
-    r.style.setProperty("--glass-mid",   "rgba(18,  22,  30,  0.62)");
-    r.style.setProperty("--glass-light", "rgba(25,  30,  42,  0.44)");
-    r.style.setProperty("--glass-hover", "rgba(32,  38,  52,  0.52)");
-    r.style.setProperty("--border",      "rgba(255, 255, 255, 0.07)");
-    r.style.setProperty("--border-2",    "rgba(255, 255, 255, 0.13)");
-  } else {
-    r.style.setProperty("--accent",      "rgba(15, 23, 42, 0.88)");
-    r.style.setProperty("--accent-dim",  "rgba(15, 23, 42, 0.12)");
-    r.style.setProperty("--accent-glow", "0 0 14px 2px rgba(0, 0, 0, 0.10)");
-    r.style.setProperty("--fg-0",        "rgba(15,  23,  42,  0.95)");
-    r.style.setProperty("--fg-1",        "rgba(30,  41,  59,  0.85)");
-    r.style.setProperty("--fg-2",        "rgba(71,  85,  105, 0.75)");
-    r.style.setProperty("--fg-3",        "rgba(100, 116, 139, 0.55)");
-    r.style.setProperty("--glass-heavy", "rgba(248, 250, 252, 0.88)");
-    r.style.setProperty("--glass-mid",   "rgba(241, 245, 249, 0.75)");
-    r.style.setProperty("--glass-light", "rgba(226, 232, 240, 0.55)");
-    r.style.setProperty("--glass-hover", "rgba(203, 213, 225, 0.62)");
-    r.style.setProperty("--border",      "rgba(0,   0,   0,   0.07)");
-    r.style.setProperty("--border-2",    "rgba(0,   0,   0,   0.13)");
+async function applyAdaptiveColors(bgValue: string): Promise<void> {
+  // Uploaded image stored as url('data:image/...')
+  if (bgValue.startsWith("url(") && bgValue.includes("data:image")) {
+    const m = bgValue.match(/url\(['"]?(data:image[^'"]+)['"]?\)/);
+    const dataUri = m?.[1];
+    if (dataUri) {
+      const tint = await extractDominantFromDataUri(dataUri);
+      const rgb = hexToRgb(tint);
+      const lum = rgb ? relativeLuminance(...rgb) : 0.1;
+      applyGlassTheme(tint, lum < 0.45);
+      return;
+    }
   }
+  // Gradient or solid color — extract first hex stop and compute luminance
+  const hex = extractFirstHex(bgValue) ?? "#6b5c4e";
+  const rgb = hexToRgb(hex);
+  const lum = rgb ? relativeLuminance(...rgb) : 0.1;
+  applyGlassTheme(hex, lum < 0.45);
 }
 
 function applyBackground(value: string, save = true) {
   document.body.style.setProperty("--app-bg", value.startsWith("url(") ? value : value);
   document.body.style.backgroundImage = value.startsWith("url(") ? value : "none";
   document.body.style.background = value.startsWith("url(") ? "" : value;
-  applyAdaptiveColors(isBgDark(value));
+  applyAdaptiveColors(value).catch(() => applyGlassTheme("#6b5c4e", false));
   updateBgSwatchActive(value);
   if (save) {
     invoke("set_setting", { key: "background", value }).catch(() => {});

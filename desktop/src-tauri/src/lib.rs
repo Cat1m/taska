@@ -1,3 +1,4 @@
+mod color_extractor;
 mod commands;
 mod db;
 mod error;
@@ -5,6 +6,8 @@ mod features;
 mod models;
 
 use features::daily;
+use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -21,6 +24,7 @@ pub fn run() {
                     eprintln!("ensure_instances_for(startup) failed: {e}");
                 }
                 handle.manage(db::AppState { pool });
+                handle.manage(color_extractor::PaletteCache(Mutex::new(HashMap::new())));
             });
 
             let scheduler_handle = handle.clone();
@@ -61,6 +65,8 @@ pub fn run() {
             features::daily::set_daily_note,
             features::settings::get_setting,
             features::settings::set_setting,
+            color_extractor::get_background_palette,
+            color_extractor::clear_palette_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

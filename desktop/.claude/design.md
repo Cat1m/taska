@@ -7,7 +7,7 @@
 
 ## 1. Visual Style
 
-**Glassmorphism dark theme** — toàn bộ UI là các lớp glass semi-transparent đặt chồng lên một background tùy chỉnh (gradient hoặc ảnh). Không có nền trắng hay solid màu nào.
+**Glassmorphism adaptive theme** — glass panels dùng `rgba` trắng (light frosted) để background thấm qua tự nhiên. Text màu adaptive: darken hue của wallpaper khi sáng, lighten khi tối. Không có `rgba` đen cứng trong glass layers.
 
 ### Font
 
@@ -37,10 +37,10 @@ Background luôn `background-attachment: fixed` + `background-size: cover`.
 
 | Token | Value | Dùng cho |
 |---|---|---|
-| `--glass-heavy` | `rgba(12,15,20, 0.76)` | Sidebar, titlebar, modal card |
-| `--glass-mid` | `rgba(18,22,30, 0.62)` | Panel nền, template card, col-head |
-| `--glass-light` | `rgba(25,30,42, 0.44)` | Input, chip active, task row hover bg |
-| `--glass-hover` | `rgba(32,38,52, 0.52)` | Hover state của row, button |
+| `--glass-heavy` | `rgba(255,255,255, 0.18)` | Sidebar, titlebar, modal card |
+| `--glass-mid` | `rgba(255,255,255, 0.13)` | Panel nền, template card, col-head |
+| `--glass-light` | `rgba(255,255,255, 0.08)` | Input, chip active, task row hover bg |
+| `--glass-hover` | `rgba(255,255,255, 0.22)` | Hover state của row, button |
 
 ### Blur
 
@@ -54,16 +54,31 @@ Background luôn `background-attachment: fixed` + `background-size: cover`.
 
 | Token | Value |
 |---|---|
-| `--border` | `rgba(255,255,255, 0.07)` — subtle, row divider |
-| `--border-2` | `rgba(255,255,255, 0.13)` — input, button, active |
+| `--border` | `rgba(255,255,255, 0.12)` — subtle, row divider |
+| `--border-2` | `rgba(255,255,255, 0.22)` — input, button, active |
 
-### Text
+### Text — `--text-*` (adaptive, injected by JS)
 
-| Token | Value | Dùng cho |
+> Các giá trị dưới đây là CSS fallback default. Runtime values được inject bởi `applyGlassTheme()` trong `src/theme/glassTheme.ts` dựa trên màu dominant của background hiện tại.  
+> `--fg-*` được giữ làm alias (`--fg-0/1 → --text-primary`, `--fg-2 → --text-secondary`, `--fg-3 → --text-muted`) để không break component styles cũ.
+
+| Token | Default | Dùng cho |
 |---|---|---|
-| `--fg-0` | `rgba(255,255,255, 0.96)` | Tiêu đề, nội dung chính |
-| `--fg-1` | `rgba(220,225,232, 0.92)` | Body text, label |
-| `--fg-2` | `rgba(172,180,192, 0.88)` | Secondary text, hint |
+| `--text-primary` | `rgba(255,255,255, 0.93)` | Tiêu đề, nội dung chính |
+| `--text-secondary` | `rgba(220,225,232, 0.80)` | Body text, label, note |
+| `--text-muted` | `rgba(160,168,180, 0.65)` | Placeholder, disabled, metadata |
+| `--text-accent` | `rgba(255,255,255, 0.90)` | Chip active, checkbox, brand mark |
+
+**Adaptive formula** (tính theo hue dominant của wallpaper):
+- `lum > 0.18` (sáng) → `darkAmount = 25 + round(lum × 35)` → darken L của tint hue
+- `lum ≤ 0.18` (tối) → `lightAmount = 30 + round((1−lum) × 30)` → lighten L của tint hue
+
+| Token cũ | Alias mới |
+|---|---|
+| `--fg-0` | `var(--text-primary)` |
+| `--fg-1` | `var(--text-primary)` |
+| `--fg-2` | `var(--text-secondary)` |
+| `--fg-3` | `var(--text-muted)` |
 | `--fg-3` | `rgba(122,130,142, 0.72)` | Placeholder, disabled, metadata |
 
 ### Accent (adaptive)
@@ -327,6 +342,7 @@ GitHub contribution graph style. 7 hàng (Mon–Sun), cột = tuần. Cells 13×
 | **Date navigation** | My Day có ‹ / › để xem ngày hôm qua. Nút › ẩn khi đang ở ngày hôm nay |
 | **Daily reset banner** | Fixed bottom banner (green, pulse animation) khi midnight scheduler chạy |
 | **Detail mini-list** | Sidebar thêm pane danh sách thu nhỏ khi vào detail view, active item highlight accent left border |
+| **Adaptive accent** | `applyAdaptiveColors(bgValue)` → Canvas Median Cut (80×80, filter lum 0.05–0.92) → dominant hex → `applyGlassTheme()` → inject `--text-primary/secondary/muted/accent` + `--accent/--accent-dim/--accent-glow` vào `:root`. Glass tokens (`--glass-*`) là rgba trắng cố định, KHÔNG thay đổi theo màu background. |
 
 ---
 
@@ -341,6 +357,27 @@ GitHub contribution graph style. 7 hàng (Mon–Sun), cột = tuần. Cells 13×
 
 - `user-select: none` trên titlebar và nav items (không select được text)
 - `data-tauri-drag-region` trên titlebar để drag cửa sổ
-- Placeholder text dùng `--fg-3`
-- Done task: opacity 0.55 + line-through (không xóa khỏi list)
+- Placeholder text dùng `--text-muted`
+- Done task: `color: var(--text-muted)` + line-through (không xóa khỏi list)
 - Archived task trong Tasks view: opacity 0.5 + line-through
+
+---
+
+## 9. Color Extraction
+
+**Algorithm**: Median Cut (Canvas JS-side cho data URI images; Rust-side cho file path images).
+
+**TypeScript** (`src/theme/glassTheme.ts`):
+- `extractDominantFromDataUri(dataUri)` — Canvas 80×80, filter lum 0.05–0.92, Median Cut depth=3, sort by colorfulness
+- `getAdaptiveTextColors(tintHex)` — HSL math, darken hoặc lighten tùy luminance
+- `applyGlassTheme(tintHex, isDark)` — inject CSS vars vào `:root`
+
+**Rust** (`src-tauri/src/color_extractor.rs`):
+- `extract_palette_from_path(path)` — `image` crate, resize 80×80 Lanczos3, filter, Median Cut depth=3, sort by colorfulness
+- `get_background_palette(path)` — Tauri command, cache theo path
+- `clear_palette_cache()` — Tauri command, invalidate cache
+- Cache: `PaletteCache(Mutex<HashMap<String, ColorPalette>>)` managed trong Tauri AppState
+
+**Adaptive text formula** (WCAG targets: title ≥ 4.5:1, secondary ≥ 3:1):
+- `lum > 0.18` → `darkAmount = 25 + round(lum × 35)` → darken L của tint hue
+- `lum ≤ 0.18` → `lightAmount = 30 + round((1−lum) × 30)` → lighten L của tint hue

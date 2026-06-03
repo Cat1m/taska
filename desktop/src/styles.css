@@ -3,26 +3,32 @@
 
 /* ===== DESIGN TOKENS ===== */
 :root {
-  /* Glass layers — semi-transparent, layer over any background */
-  --glass-heavy: rgba(12, 15, 20, 0.76);
-  --glass-mid:   rgba(18, 22, 30, 0.62);
-  --glass-light: rgba(25, 30, 42, 0.44);
-  --glass-hover: rgba(32, 38, 52, 0.52);
+  /* Glass layers — light frosted, rgba white so background shows through */
+  --glass-heavy: rgba(255, 255, 255, 0.18);
+  --glass-mid:   rgba(255, 255, 255, 0.13);
+  --glass-light: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.22);
 
   /* Borders */
-  --border:   rgba(255, 255, 255, 0.07);
-  --border-2: rgba(255, 255, 255, 0.13);
+  --border:   rgba(255, 255, 255, 0.12);
+  --border-2: rgba(255, 255, 255, 0.22);
 
   /* Blur amounts */
   --blur-sm: blur(8px);
   --blur-md: blur(14px);
   --blur-lg: blur(22px);
 
-  /* Text */
-  --fg-0: rgba(255, 255, 255, 0.96);
-  --fg-1: rgba(220, 225, 232, 0.92);
-  --fg-2: rgba(172, 180, 192, 0.88);
-  --fg-3: rgba(122, 130, 142, 0.72);
+  /* Text — adaptive, overridden by applyGlassTheme() at runtime */
+  --text-primary:   rgba(255, 255, 255, 0.93);
+  --text-secondary: rgba(220, 225, 232, 0.80);
+  --text-muted:     rgba(160, 168, 180, 0.65);
+  --text-accent:    rgba(255, 255, 255, 0.90);
+
+  /* Aliases — backward compat with existing component selectors */
+  --fg-0: var(--text-primary);
+  --fg-1: var(--text-primary);
+  --fg-2: var(--text-secondary);
+  --fg-3: var(--text-muted);
 
   /* Accent colors */
   --green:   #6fae84;
@@ -43,6 +49,7 @@
   --glow-green: 0 0 14px 2px rgba(111, 174, 132, 0.28);
   --glow-teal:  0 0 12px 2px rgba(90,  155, 160, 0.22);
   --glow-amber: 0 0 12px 2px rgba(179, 147, 90,  0.22);
+
 
   /* Adaptive accent — neutral by default, overridden by applyAdaptiveColors() */
   --accent:      rgba(255, 255, 255, 0.88);
@@ -224,8 +231,8 @@ body {
 .nav-pill {
   font-size: 10px;
   font-weight: 600;
-  background: var(--green-d);
-  color: var(--green);
+  background: color-mix(in srgb, var(--text-accent) 18%, transparent);
+  color: var(--text-accent);
   padding: 1px 5px;
   border-radius: 999px;
   min-width: 18px;
@@ -355,8 +362,8 @@ body {
   text-align: right;
   flex-shrink: 0;
 }
-.autosave-hint.saving { color: var(--amber); }
-.autosave-hint.saved  { color: var(--green); }
+.autosave-hint.saving { color: var(--text-secondary); }
+.autosave-hint.saved  { color: var(--text-accent); }
 
 /* ===== BUTTONS ===== */
 .btn {
@@ -472,9 +479,9 @@ kbd {
 }
 .chip:hover { background: var(--glass-light); color: var(--fg-0); }
 .chip.active {
-  background: var(--glass-light);
-  border-color: var(--border-2);
-  color: var(--fg-0);
+  background: color-mix(in srgb, var(--text-accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--text-accent) 40%, transparent);
+  color: var(--text-accent);
   box-shadow: var(--accent-glow);
 }
 
@@ -485,8 +492,8 @@ kbd {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ctx-dot.personal { background: var(--teal); }
-.ctx-dot.work     { background: var(--amber); }
+.ctx-dot.personal,
+.ctx-dot.work { display: none; }
 
 /* ===== MY DAY META ===== */
 .myday-meta {
@@ -553,9 +560,9 @@ kbd {
   transition: background 0.12s, border-color 0.12s, box-shadow 0.2s;
 }
 .chk:checked {
-  background: var(--green);
-  border-color: var(--green);
-  box-shadow: var(--glow-green);
+  background: var(--text-accent);
+  border-color: var(--text-accent);
+  box-shadow: var(--accent-glow);
 }
 .chk:checked::after {
   content: '';
@@ -594,7 +601,7 @@ kbd {
 }
 .instance-title.done {
   text-decoration: line-through;
-  color: var(--fg-2);
+  color: var(--text-muted);
 }
 
 /* Badges */
@@ -609,19 +616,16 @@ kbd {
   flex-shrink: 0;
 }
 
-.badge.ctx-personal {
-  background: color-mix(in srgb, var(--teal) 18%, transparent);
-  color: var(--teal);
-  box-shadow: var(--glow-teal);
-}
+.badge.ctx-personal,
 .badge.ctx-work {
-  background: color-mix(in srgb, var(--amber) 18%, transparent);
-  color: var(--amber);
-  box-shadow: var(--glow-amber);
+  background: color-mix(in srgb, var(--text-accent) 15%, transparent);
+  color: var(--text-accent);
+  box-shadow: none;
 }
-.badge.cat-daily  { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
-.badge.cat-normal { background: color-mix(in srgb, var(--slate) 18%, transparent); color: var(--slate); }
-.badge.b-template { background: color-mix(in srgb, var(--amber) 12%, transparent); color: var(--amber); }
+.badge.cat-daily  { background: color-mix(in srgb, var(--text-accent) 15%, transparent); color: var(--text-accent); }
+.badge.cat-normal { background: color-mix(in srgb, var(--text-muted)  15%, transparent); color: var(--text-muted); }
+.badge.b-template { background: color-mix(in srgb, var(--text-accent) 12%, transparent); color: var(--text-accent); }
+.badge.b-due      { background: color-mix(in srgb, var(--text-muted)  12%, transparent); color: var(--text-muted); }
 .badge.b-archived { background: color-mix(in srgb, var(--red) 18%, transparent);   color: var(--red); }
 
 /* Note field */
@@ -632,7 +636,7 @@ kbd {
   background: var(--glass-light);
   border: 1px solid var(--border);
   border-radius: 3px;
-  color: var(--fg-1);
+  color: var(--text-secondary);
   padding: 5px 8px;
   resize: none;
   overflow: hidden;
@@ -640,7 +644,7 @@ kbd {
   min-height: 28px;
   line-height: 1.4;
 }
-.note-field::placeholder { color: var(--fg-3); }
+.note-field::placeholder { color: var(--text-muted); }
 .note-field:focus {
   outline: none;
   border-color: var(--accent);
@@ -654,8 +658,8 @@ kbd {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border-left: 2px solid var(--green);
-  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-left: 2px solid var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 8%, transparent);
   border-radius: 0 4px 4px 0;
 }
 .instructions-label {
@@ -663,7 +667,7 @@ kbd {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--green);
+  color: var(--text-accent);
   opacity: 0.85;
 }
 .instructions-text {
@@ -685,7 +689,7 @@ kbd {
   display: none;
   background: none;
   border: none;
-  color: var(--green);
+  color: var(--text-accent);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 0;
@@ -1116,7 +1120,7 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 .task-row.is-archived .task-title-text { text-decoration: line-through; }
 .task-instructions-preview {
   font-size: 11px;
-  color: var(--green);
+  color: var(--text-accent);
   opacity: 0.85;
 }
 .task-note-preview {
@@ -1145,7 +1149,7 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
   color: var(--fg-2);
 }
 .due-text.over { color: var(--red); }
-.due-text.soon { color: var(--amber); }
+.due-text.soon { color: var(--text-secondary); }
 
 /* ===== TEMPLATES VIEW ===== */
 .templates-list {
@@ -1198,7 +1202,7 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 
 .note-toggle-btn {
   font-size: 11px;
-  color: var(--green);
+  color: var(--text-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -1251,7 +1255,7 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
   color: var(--fg-2);
   margin: 4px 0;
 }
-.md-content a { color: var(--green); text-decoration: none; }
+.md-content a { color: var(--text-accent); text-decoration: none; }
 .md-content a:hover { text-decoration: underline; }
 
 /* ===== DAILY VIEW ===== */
@@ -1402,7 +1406,7 @@ select.modal-select:focus { border-color: var(--accent); box-shadow: var(--accen
 .detail-section { display: flex; flex-direction: column; gap: 6px; }
 .detail-section-label {
   font-size: 10px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--green); opacity: 0.85;
+  letter-spacing: 0.06em; color: var(--text-accent); opacity: 0.85;
 }
 .detail-instructions, .detail-note {
   font-size: 12.5px; color: var(--fg-1); line-height: 1.5;
