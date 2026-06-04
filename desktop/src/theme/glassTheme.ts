@@ -57,8 +57,8 @@ export function getAdaptiveTextColors(tintHex: string): {
     const primary = hslToHex(h, clamp(s + 12, 0, 100), clamp(l - da,        6,  100));
     return {
       primary,
-      secondary: hslToHex(h, clamp(s + 6,  0, 100), clamp(l - da * 0.65, 18, 100)),
-      muted:     hslToHex(h, clamp(s,       0, 100), clamp(l - da * 0.40, 28, 100)),
+      secondary: hslToHex(h, clamp(s + 6,  0, 100), clamp(l - da * 0.82, 14, 100)),
+      muted:     hslToHex(h, clamp(s,       0, 100), clamp(l - da * 0.62, 22, 100)),
       accent:    primary,
     };
   } else {
@@ -67,8 +67,8 @@ export function getAdaptiveTextColors(tintHex: string): {
     const primary = hslToHex(h, clamp(s - 15, 0, 100), clamp(l + la,        8, 92));
     return {
       primary,
-      secondary: hslToHex(h, clamp(s - 20, 0, 100), clamp(l + la * 0.70, 8, 80)),
-      muted:     hslToHex(h, clamp(s - 25, 0, 100), clamp(l + la * 0.45, 8, 65)),
+      secondary: hslToHex(h, clamp(s - 20, 0, 100), clamp(l + la * 0.85, 8, 88)),
+      muted:     hslToHex(h, clamp(s - 25, 0, 100), clamp(l + la * 0.65, 8, 78)),
       accent:    primary,
     };
   }
