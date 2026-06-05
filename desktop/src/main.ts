@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { renderMarkdown } from "./markdown";
-import { applyGlassTheme, extractDominantFromDataUri } from "./theme/glassTheme";
+import { applyAccent } from "./theme/accentTheme";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -1148,140 +1148,114 @@ async function saveModal() {
   }
 }
 
-// ─── Background system ────────────────────────────────────
+// ─── Accent color system ──────────────────────────────────
 
-const BG_PRESETS = [
-  { label: "Midnight", value: "linear-gradient(135deg, #0c0d11 0%, #111820 50%, #141c2a 100%)" },
-  { label: "Slate",    value: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)" },
-  { label: "Forest",   value: "linear-gradient(135deg, #0a1612 0%, #0f2318 50%, #1a3a26 100%)" },
-  { label: "Dusk",     value: "linear-gradient(135deg, #1a0e2e 0%, #2d1554 50%, #1e0a3c 100%)" },
-  { label: "Ember",    value: "linear-gradient(135deg, #1a0c0a 0%, #2d1408 50%, #3d1f10 100%)" },
-  { label: "Ocean",    value: "linear-gradient(135deg, #041428 0%, #0a2040 50%, #0d2d5a 100%)" },
-  { label: "Ash",      value: "linear-gradient(135deg, #131314 0%, #1c1c1e 50%, #242426 100%)" },
-  { label: "Warm",     value: "linear-gradient(135deg, #1a1510 0%, #251e15 50%, #2e261a 100%)" },
+const ACCENT_DEFAULT = "#7B62A3";
+const ACCENT_PRESETS = [
+  "#7B62A3",
+  "#5B8AF0",
+  "#5CA85C",
+  "#E8695A",
+  "#E8A84A",
+  "#5EC4C4",
 ];
 
-function hexToRgb(hex: string): [number, number, number] | null {
-  const m = hex.replace("#", "").match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (!m) return null;
-  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
+function isValidHex(s: string): boolean {
+  return /^#[0-9a-f]{6}$/i.test(s);
 }
 
-function relativeLuminance(r: number, g: number, b: number): number {
-  const lin = (v: number) => {
-    const s = v / 255;
-    return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+function normalizeHex(s: string): string {
+  const t = s.trim();
+  return t.startsWith("#") ? t : "#" + t;
 }
 
-function extractFirstHex(css: string): string | null {
-  const m = css.match(/#([0-9a-f]{6})/i);
-  return m ? m[0] : null;
-}
-
-
-async function applyAdaptiveColors(bgValue: string): Promise<void> {
-  // Uploaded image stored as url('data:image/...')
-  if (bgValue.startsWith("url(") && bgValue.includes("data:image")) {
-    const m = bgValue.match(/url\(['"]?(data:image[^'"]+)['"]?\)/);
-    const dataUri = m?.[1];
-    if (dataUri) {
-      const tint = await extractDominantFromDataUri(dataUri);
-      const rgb = hexToRgb(tint);
-      const lum = rgb ? relativeLuminance(...rgb) : 0.1;
-      applyGlassTheme(tint, lum < 0.45);
-      return;
-    }
+function syncAccentUI(hex: string) {
+  const normalized = hex.toLowerCase();
+  (document.getElementById("btn-accent-pick") as HTMLButtonElement).style.background = hex;
+  (document.getElementById("accent-color-input") as HTMLInputElement).value = hex;
+  const hexInput = document.getElementById("accent-hex-input") as HTMLInputElement;
+  if (hexInput) {
+    hexInput.value = hex;
+    hexInput.classList.remove("invalid");
   }
-  // Gradient or solid color — extract first hex stop and compute luminance
-  const hex = extractFirstHex(bgValue) ?? "#6b5c4e";
-  const rgb = hexToRgb(hex);
-  const lum = rgb ? relativeLuminance(...rgb) : 0.1;
-  applyGlassTheme(hex, lum < 0.45);
-}
-
-function applyBackground(value: string, save = true) {
-  document.body.style.setProperty("--app-bg", value.startsWith("url(") ? value : value);
-  document.body.style.backgroundImage = value.startsWith("url(") ? value : "none";
-  document.body.style.background = value.startsWith("url(") ? "" : value;
-  applyAdaptiveColors(value).catch(() => applyGlassTheme("#6b5c4e", false));
-  updateBgSwatchActive(value);
-  if (save) {
-    invoke("set_setting", { key: "background", value }).catch(() => {});
-  }
-}
-
-function updateBgSwatchActive(value: string) {
-  document.querySelectorAll<HTMLElement>(".bg-swatch").forEach(el => {
-    el.classList.toggle("active", el.dataset.bg === value);
+  document.querySelectorAll<HTMLButtonElement>(".accent-preset").forEach(el => {
+    el.classList.toggle("active", el.dataset.color?.toLowerCase() === normalized);
   });
 }
 
-function setupBgPicker() {
-  const btn   = document.getElementById("bg-btn")!;
-  const panel = document.getElementById("bg-panel")!;
-  const presetContainer = document.getElementById("bg-presets")!;
-  const colorInput      = document.getElementById("bg-color-input") as HTMLInputElement;
-  const uploadBtn       = document.getElementById("bg-upload-btn")!;
-  const fileInput       = document.getElementById("bg-file-input") as HTMLInputElement;
+function applyAndSave(hex: string) {
+  applyAccent(hex);
+  syncAccentUI(hex);
+  invoke("set_setting", { key: "accent_color", value: hex }).catch(() => {});
+}
+
+function setupAccentPicker() {
+  const btn        = document.getElementById("btn-accent-pick") as HTMLButtonElement;
+  const panel      = document.getElementById("accent-panel") as HTMLDivElement;
+  const presetsEl  = document.getElementById("accent-presets") as HTMLDivElement;
+  const colorInput = document.getElementById("accent-color-input") as HTMLInputElement;
+  const hexInput   = document.getElementById("accent-hex-input") as HTMLInputElement;
+  const resetBtn   = document.getElementById("btn-accent-reset") as HTMLButtonElement;
+  const wheelBtn   = document.getElementById("btn-accent-wheel") as HTMLButtonElement;
 
   // Build preset swatches
-  BG_PRESETS.forEach(p => {
+  ACCENT_PRESETS.forEach(color => {
     const swatch = document.createElement("button");
-    swatch.className = "bg-swatch";
-    swatch.dataset.bg = p.value;
-    swatch.style.background = p.value;
-    swatch.title = p.label;
-    const lbl = document.createElement("span");
-    lbl.className = "bg-swatch-label";
-    lbl.textContent = p.label;
-    swatch.appendChild(lbl);
-    swatch.addEventListener("click", () => applyBackground(p.value));
-    presetContainer.appendChild(swatch);
+    swatch.className = "accent-preset";
+    swatch.dataset.color = color;
+    swatch.style.background = color;
+    swatch.title = color;
+    swatch.addEventListener("click", () => applyAndSave(color));
+    presetsEl.appendChild(swatch);
   });
 
-  // Toggle panel
-  btn.addEventListener("click", e => {
+  // Toggle panel on swatch click
+  btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const open = panel.classList.toggle("hidden");
-    btn.classList.toggle("open", !open);
+    panel.classList.toggle("hidden");
   });
 
   // Close on outside click
-  document.addEventListener("click", e => {
-    if (!panel.classList.contains("hidden") && !panel.contains(e.target as Node) && e.target !== btn) {
+  document.addEventListener("click", (e) => {
+    if (!panel.contains(e.target as Node) && e.target !== btn) {
       panel.classList.add("hidden");
-      btn.classList.remove("open");
     }
   });
 
-  // Color picker → solid background
-  colorInput.addEventListener("input", () => {
-    applyBackground(colorInput.value);
+  colorInput.addEventListener("input", () => applyAndSave(colorInput.value));
+
+  hexInput.addEventListener("input", () => {
+    const val = normalizeHex(hexInput.value);
+    if (isValidHex(val)) {
+      hexInput.classList.remove("invalid");
+      applyAndSave(val);
+    } else {
+      hexInput.classList.add("invalid");
+    }
   });
 
-  // Image upload
-  uploadBtn.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const cssUrl = `url('${dataUrl}')`;
-      applyBackground(cssUrl);
-    };
-    reader.readAsDataURL(file);
+  hexInput.addEventListener("blur", () => {
+    const val = normalizeHex(hexInput.value);
+    if (!isValidHex(val)) {
+      const current = colorInput.value || ACCENT_DEFAULT;
+      hexInput.value = current;
+      hexInput.classList.remove("invalid");
+    }
   });
+
+  wheelBtn.addEventListener("click", () => colorInput.click());
+  resetBtn.addEventListener("click", () => applyAndSave(ACCENT_DEFAULT));
 }
 
-async function initBackground() {
+async function initAccent() {
   try {
-    const saved = await invoke<string | null>("get_setting", { key: "background" });
-    applyBackground(saved ?? BG_PRESETS[0].value, false);
+    const saved = await invoke<string | null>("get_setting", { key: "accent_color" });
+    const hex = saved ?? ACCENT_DEFAULT;
+    applyAccent(hex);
+    syncAccentUI(hex);
   } catch {
-    applyBackground(BG_PRESETS[0].value, false);
+    applyAccent(ACCENT_DEFAULT);
+    syncAccentUI(ACCENT_DEFAULT);
   }
 }
 
@@ -1296,9 +1270,9 @@ function showResetBanner() {
 // ─── Init ─────────────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // Background
-  setupBgPicker();
-  await initBackground();
+  // Accent color
+  setupAccentPicker();
+  await initAccent();
 
   // Today date subtitle + yesterday nav
   updateMyDayDateNav();

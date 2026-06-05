@@ -22,22 +22,6 @@
       </div>
     </div>
 
-    <!-- Background Picker Panel -->
-    <div id="bg-panel" class="bg-panel hidden">
-      <div>
-        <div class="bg-section-label">Presets</div>
-        <div class="bg-presets" id="bg-presets"></div>
-      </div>
-      <div class="bg-divider"></div>
-      <div class="bg-custom-row">
-        <span class="bg-color-label">Solid color</span>
-        <input type="color" id="bg-color-input" class="bg-color-input" value="#0c0d11" title="Pick color">
-      </div>
-      <div class="bg-divider"></div>
-      <button id="bg-upload-btn" class="bg-upload-btn">↑ Upload image</button>
-      <input type="file" id="bg-file-input" accept="image/*" style="display:none">
-    </div>
-
     <div class="layout">
       <nav class="sidebar">
         <div class="brand">
@@ -77,7 +61,8 @@
         </div>
 
         <div class="sidebar-foot">
-          <button id="bg-btn" class="bg-btn">⬛ edit background</button>
+          <button id="btn-accent-pick" class="accent-btn" title="Accent color"></button>
+          <input type="color" id="accent-color-input" value="#7B62A3" style="display:none">
         </div>
       </nav>
 
@@ -286,6 +271,18 @@
           <button id="modal-cancel" class="btn ghost">Cancel <kbd>Esc</kbd></button>
           <button id="modal-save"   class="btn primary">Save</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Accent color popup panel -->
+    <div id="accent-panel" class="accent-panel hidden">
+      <div class="accent-panel-label">Accent color</div>
+      <div class="accent-presets" id="accent-presets"></div>
+      <div class="accent-panel-row">
+        <input type="text" id="accent-hex-input" class="accent-hex-input"
+               maxlength="7" placeholder="#7B62A3" spellcheck="false" autocomplete="off">
+        <button id="btn-accent-wheel" class="accent-reset-btn" title="Custom color">🎨</button>
+        <button id="btn-accent-reset" class="accent-reset-btn" title="Reset to default">↺</button>
       </div>
     </div>
   </body>
